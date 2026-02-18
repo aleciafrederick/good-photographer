@@ -1,5 +1,9 @@
 # GoodPhotographer
 
+GoodPhotographer is a desktop app that batch-processes headshots so they all match the same framing and export in standard sizes. You upload photos, enter each person’s name and year, choose which formats to export (Website Bio, Spin Bio, Nucleus Round), and run. 
+
+The app detects eyes in each image, aligns the face to a template so head position and scale are consistent, and writes a Raw copy plus the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
+
 ## From one shot prompt to installable app in 2 hours
 
 This project went from a single ChatGPT prompt to a packaged Mac app in about two hours. Here’s the path we took—useful if you want to repeat the pattern for your own idea.
