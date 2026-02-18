@@ -10,7 +10,7 @@ import sys
 import json
 import os
 import cv2
-from align import detect_eyes, align_to_template
+from align import detect_face_and_eyes, align_to_template, align_to_template_by_face
 from export_formats import (
     base_filename,
     make_unique_name,
@@ -95,15 +95,18 @@ def main():
             raw_path = os.path.join(export_dir, raw_name)
             export_raw(img, raw_path)
 
-            # 2. Detect eyes and align
-            eyes = detect_eyes(img, face_cascade, eye_cascade, predictor_path)
-            if eyes is None:
+            # 2. Detect face and align (by face rect if template has it, else by eye positions)
+            result = detect_face_and_eyes(img, face_cascade, eye_cascade, predictor_path)
+            if result is None:
                 print(f"ERROR: No face detected in {os.path.basename(src_path)} ({first_name} {last_name})", flush=True)
                 print(f"PROGRESS {i + 1} {total}", flush=True)
                 continue
 
-            left_eye, right_eye = eyes
-            aligned = align_to_template(img, left_eye, right_eye, template)
+            left_eye, right_eye, face_rect = result
+            if "face_left" in template and "face_top" in template and "face_width" in template and "face_height" in template:
+                aligned = align_to_template_by_face(img, face_rect, template)
+            else:
+                aligned = align_to_template(img, left_eye, right_eye, template)
 
             # 3. Export selected formats
             for fmt in formats:

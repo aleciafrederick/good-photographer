@@ -1,12 +1,14 @@
 {
   "canvas_width": 1024,
   "canvas_height": 683,
-  "left_eye": [460, 235],
-  "right_eye": [547, 235],
+  "face_left": 392,
+  "face_top": 140,
+  "face_width": 240,
+  "face_height": 264,
   "formats": {
     "website_bio": {"width": 1024, "height": 683},
     "spin_bio": {"width": 510, "height": 510},
     "nucleus_round": {"width": 510, "height": 510, "circular": true}
   },
-  "_comment": "Pupil positions: 235px from top; left 460px, right 547px from left. Canvas 1024×683."
+  "_comment": "Bio canvas 1024×683. Reference face rect (x,y,w,h)=374,128,264,264. New images aligned face-to-face to this rect."
 }

@@ -2,7 +2,7 @@
 
 GoodPhotographer is a desktop app that batch-processes headshots so they all match the same framing and export in standard sizes. You upload photos, enter each person’s name and year, choose which formats to export (Website Bio, Spin Bio, Nucleus Round), and run. 
 
-The app detects eyes in each image, aligns the face to a template so head position and scale are consistent, and writes a Raw copy plus the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
+The app detects the face in each image, aligns it to a template so head position and scale are consistent, and writes a Raw copy plus the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
 
 ## From one shot prompt to installable app in 2 hours
 
@@ -24,7 +24,11 @@ This project went from a single ChatGPT prompt to a packaged Mac app in about tw
 
 Batch-process headshots: normalize alignment to a template and export standardized image formats (Website Bio, Spin Bio, Nucleus Round). Raw copy is always saved.
 
-**Alignment template:** All photos are normalized to the same size and head/eye position using **`resources/template.json`**. The template is **manually defined** (pupil positions and canvas size in pixels); it is not generated from any image. Edit `template.json` directly to change alignment. The reference image `resources/normal-headshot.png` is for visual reference only and is not read by the app.
+**Alignment template:** All photos are normalized to the same size and face position using **`resources/template.json`**. The template is **manually defined**: it specifies the canvas size (1024×683 for Bio) and a **reference face rectangle** (`face_left`, `face_top`, `face_width`, `face_height`) in pixels. Edit `template.json` to change framing. The reference image `resources/normal-headshot.png` is for visual reference only and is not read by the app.
+
+**How alignment works:** The app detects the face in each photo (OpenCV cascade), then warps the image so the detected face maps to the template face rect—same position and size, uniform scale. No eye detection or margins; face-to-face alignment only. If the template has no face rect, the app falls back to eye-proportion alignment.
+
+**Tech stack:** **Electron** + **React** (Vite) for the desktop UI; **Python** processor with **OpenCV** for face detection and affine alignment; **PyInstaller** to bundle the processor into a single binary; **electron-builder** for the Mac .app and DMG. No cloud APIs; everything runs locally.
 
 ## Requirements
 
