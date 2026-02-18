@@ -1,0 +1,57 @@
+{
+  "name": "good-photographer",
+  "version": "0.1.0",
+  "description": "Batch-process headshots: normalize alignment, export standardized formats",
+  "author": "Alecia Frederick",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "ELECTRON_DEV=1 electron .",
+    "build": "vite build",
+    "build:icon": "node scripts/build-icon.js",
+    "build:processor": "cd processor && pip install -r requirements.txt pyinstaller -q && pyinstaller -y processor.spec && cd ..",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "start": "npm run build && electron .",
+    "test": "npm run build && electron .",
+    "pack": "npm run build:icon && npm run build && npm run build:processor && electron-builder --dir",
+    "dist": "npm run build:icon && npm run build && npm run build:processor && electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.goodphotographer.app",
+    "productName": "GoodPhotographer",
+    "mac": {
+      "category": "public.app-category.photography",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "processor/dist",
+        "to": "processor"
+      },
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ]
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "make-icns": "^1.2.2",
+    "vite": "^5.0.0"
+  }
+}
