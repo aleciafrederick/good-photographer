@@ -6,20 +6,27 @@
   "license": "MIT",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "ELECTRON_DEV=1 electron .",
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && ELECTRON_DEV=1 electron .\"",
     "build": "vite build",
     "build:icon": "node scripts/build-icon.js",
     "build:processor": "cd processor && pip install -r requirements.txt pyinstaller -q && pyinstaller -y processor.spec && cd ..",
+    "build:processor:x64": "arch -x86_64 bash -c 'cd processor && pip install -r requirements.txt pyinstaller -q && pyinstaller -y --distpath dist-x64 processor.spec && cd ..'",
     "preview": "vite preview",
     "electron": "electron .",
     "start": "npm run build && electron .",
     "test": "npm run build && electron .",
     "pack": "npm run build:icon && npm run build && npm run build:processor && electron-builder --dir",
-    "dist": "npm run build:icon && npm run build && npm run build:processor && electron-builder --mac"
+    "dist": "npm run dist:all",
+    "dist:arm64": "npm run build:icon && npm run build && npm run build:processor && electron-builder --mac --arm64 && mkdir -p release && (find dist -name '*-arm64.dmg' -exec cp {} release/ \\;)",
+    "dist:x64": "npm run build:icon && npm run build && npm run build:processor:x64 && cp -r processor/dist-x64/* processor/dist && electron-builder --mac --x64 && mkdir -p release && (find dist -name '*-x64.dmg' -exec cp {} release/ \\;)",
+    "dist:universal": "npm run build:icon && npm run build && npm run build:processor && npm run build:processor:x64 && electron-builder --mac --universal --config build/electron-builder-universal.json && mkdir -p release && (find dist -name 'GoodPhotographer-0.1.0.dmg' -exec cp {} release/ \\;)",
+    "dist:all": "npm run dist:arm64 && npm run dist:x64 && npm run build:processor && npm run build:processor:x64 && electron-builder --mac --universal --config build/electron-builder-universal.json && npm run release",
+    "release": "mkdir -p release && cp dist/GoodPhotographer-0.1.0-arm64.dmg release/ 2>/dev/null; cp dist/GoodPhotographer-0.1.0-x64.dmg release/ 2>/dev/null; cp dist/GoodPhotographer-0.1.0.dmg release/ 2>/dev/null; true && echo 'Release folder:' && ls -la release/*.dmg 2>/dev/null || true"
   },
   "build": {
     "appId": "com.goodphotographer.app",
     "productName": "GoodPhotographer",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.photography",
       "icon": "build/icon.icns",
@@ -49,7 +56,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
     "electron": "^28.0.0",
+    "wait-on": "^7.2.0",
     "electron-builder": "^24.9.1",
     "make-icns": "^1.2.2",
     "vite": "^5.0.0"

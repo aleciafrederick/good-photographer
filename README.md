@@ -100,6 +100,8 @@ The app is packaged so users install **one thing**—no separate Python or depen
 
 Users only need to install the **.app** or **.dmg**; Python is not required.
 
+**Build installs:** **`npm run dist:all`** builds arm64, x64, and Universal DMGs and copies them to `release/`. Or run **`npm run dist:arm64`**, **`npm run dist:x64`**, or **`npm run dist:universal`** for a single target (each copies its DMG to `release/`). The `dist/` and `release/` folders are gitignored; share installers from `release/` outside the repo.
+
 ## Export location
 
 Files are written to:

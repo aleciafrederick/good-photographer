@@ -1,5 +1,6 @@
 node_modules/
 dist/
+release/
 *.log
 .DS_Store
 *.pyc
@@ -7,5 +8,6 @@ __pycache__/
 .env
 *.local
 /processor/dist/
+/processor/dist-x64/
 /processor/build/
 /build/

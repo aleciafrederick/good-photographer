@@ -23,9 +23,16 @@ function getProcessorPath() {
   if (!isPackaged) {
     return path.join(__dirname, '..', 'processor', 'run_processor.py');
   }
-  const base = path.join(process.resourcesPath, 'processor');
   const exe = process.platform === 'win32' ? 'processor.exe' : 'processor';
-  return path.join(base, exe);
+  // Universal: processor (arm64), processor-x64 (x64). On x64 never use processor/ (arm64) or we get EBADARCH -86.
+  if (process.arch === 'x64') {
+    const x64Path = path.join(process.resourcesPath, 'processor-x64', exe);
+    if (fs.existsSync(x64Path)) return x64Path;
+    return path.join(process.resourcesPath, 'processor', exe); // x64-only build has only processor/
+  }
+  const arm64Path = path.join(process.resourcesPath, 'processor', exe);
+  if (fs.existsSync(arm64Path)) return arm64Path;
+  return path.join(process.resourcesPath, 'processor-x64', exe);
 }
 
 function createWindow() {
@@ -151,7 +158,15 @@ ipcMain.handle('run-processor', async (_, payload) => {
     });
 
     proc.on('error', (err) => {
-      reject(err);
+      const msg = err.message || '';
+      const isBadArch = msg.includes('-86') || err.code === 'EBADARCH' || msg.includes('Bad CPU type');
+      if (isBadArch && process.arch === 'x64') {
+        reject(new Error('This install does not include the Intel processor. On an Intel Mac, use the "Intel" download from the GoodPhotographer README (GoodPhotographer-0.1.0-x64.dmg).'));
+      } else if (isBadArch) {
+        reject(new Error('Processor architecture mismatch. Use the Universal or Intel download that matches your Mac.'));
+      } else {
+        reject(err);
+      }
     });
   });
 });
