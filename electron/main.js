@@ -95,6 +95,8 @@ ipcMain.handle('open-export-folder', (_, dir) => {
 });
 
 // Run Python processor (dev: python run_processor.py; prod: bundled binary)
+const PROCESSOR_TIMEOUT_MS = 120 * 1000; // 2 min so we never freeze; process can finish earlier
+
 ipcMain.handle('run-processor', async (_, payload) => {
   const { exportDir, photos, formats } = payload;
   const templatePath = getTemplatePath();
@@ -111,12 +113,43 @@ ipcMain.handle('run-processor', async (_, payload) => {
   const isPython = String(processorPath).endsWith('.py');
   const cwd = path.dirname(processorPath);
 
+  // When packaged, ensure processor binary and template exist so we fail fast with a clear message
+  if (isPackaged) {
+    if (!fs.existsSync(processorPath)) {
+      throw new Error(`Processor not found at: ${processorPath}. Reinstall the app.`);
+    }
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template not found at: ${templatePath}. Reinstall the app.`);
+    }
+  }
+
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      resolve(result);
+    };
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      reject(err);
+    };
+
     const args = isPython ? [processorPath, configPath] : [configPath];
     const proc = spawn(isPython ? 'python3' : processorPath, args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+
+    const timeoutId = setTimeout(() => {
+      try {
+        proc.kill('SIGKILL');
+      } catch (_) {}
+      fail(new Error('Processor timed out. The app may not have permission to run the processor—try moving the app to Applications and run again, or run from Terminal to see errors: open -a GoodPhotographer'));
+    }, PROCESSOR_TIMEOUT_MS);
 
     let stdout = '';
     let stderr = '';
@@ -147,10 +180,13 @@ ipcMain.handle('run-processor', async (_, payload) => {
     proc.on('close', (code) => {
       const errors = progress.errors.slice();
       if (code !== 0 && stderr.trim()) {
-        const tail = stderr.trim().split('\n').slice(-5).join(' ');
-        if (tail) errors.push(`Processor exit ${code}: ${tail}`);
+        const trimmed = stderr.trim();
+        const excerpt = trimmed.length > 2000 ? trimmed.slice(-2000) : trimmed;
+        const lines = excerpt.split('\n');
+        const lastFew = lines.slice(-8).join('\n');
+        if (lastFew) errors.push(`Processor exit ${code}: ${lastFew}`);
       }
-      resolve({
+      finish({
         success: code === 0,
         exportDir,
         errors,
@@ -161,11 +197,11 @@ ipcMain.handle('run-processor', async (_, payload) => {
       const msg = err.message || '';
       const isBadArch = msg.includes('-86') || err.code === 'EBADARCH' || msg.includes('Bad CPU type');
       if (isBadArch && process.arch === 'x64') {
-        reject(new Error('This install does not include the Intel processor. On an Intel Mac, use the "Intel" download from the GoodPhotographer README (GoodPhotographer-0.1.0-x64.dmg).'));
+        fail(new Error('This install does not include the Intel processor. On an Intel Mac, use the "Intel" download from the GoodPhotographer README (GoodPhotographer-0.1.0-x64.dmg).'));
       } else if (isBadArch) {
-        reject(new Error('Processor architecture mismatch. Use the Universal or Intel download that matches your Mac.'));
+        fail(new Error('Processor architecture mismatch. Use the Universal or Intel download that matches your Mac.'));
       } else {
-        reject(err);
+        fail(err);
       }
     });
   });

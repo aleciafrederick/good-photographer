@@ -12,17 +12,13 @@ export default function ProcessingScreen({ total }) {
     };
   }, []);
 
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-
   return (
     <div className="processing">
       <h1>Processing</h1>
+      <div className="processing-spinner" aria-hidden="true" />
       <p className="progress-text">
         Processing {current} of {total}
       </p>
-      <div className="progress-bar-wrap">
-        <div className="progress-bar" style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }
