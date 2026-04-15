@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onProcessorProgress: (fn) => {
     ipcRenderer.on('processor-progress', (_, data) => fn(data));
   },
+  isBrowser: false,
 });

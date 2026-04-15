@@ -1,5 +1,5 @@
 """
-Export aligned image to each format: crop/resize, circular mask for Nucleus, filenames.
+Export aligned image to each selected format: crop/resize, circular mask for Nucleus, filenames.
 """
 import cv2
 import numpy as np
@@ -34,11 +34,6 @@ def make_unique_name(base, ext, existing):
             existing.add(name)
             return name
         i += 1
-
-
-def export_raw(img_bgr, out_path):
-    """Save original image as JPEG (visually preserve)."""
-    cv2.imwrite(out_path, img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
 
 def export_website_bio(aligned_bgr, out_path, template_format):

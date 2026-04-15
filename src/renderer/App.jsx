@@ -33,6 +33,7 @@ export default function App() {
         firstName: p.firstName.trim(),
         lastName: p.lastName.trim(),
         year: String(p.year).trim(),
+        ...(p.file && { file: p.file }),
       })),
       formats: formatList,
     };

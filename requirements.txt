@@ -1,0 +1,4 @@
+-r processor/requirements.txt
+fastapi
+python-multipart
+uvicorn

@@ -2,7 +2,6 @@
 """
 GoodPhotographer image processor.
 Reads config JSON (export_dir, photos[], formats[]), processes each image:
-- Save Raw copy
 - Detect eyes, align to template, export selected formats
 - Prints PROGRESS current total for UI
 """
@@ -14,7 +13,6 @@ from align import detect_face_and_eyes, align_to_template, align_to_template_by_
 from export_formats import (
     base_filename,
     make_unique_name,
-    export_raw,
     EXPORTERS,
 )
 
@@ -90,12 +88,7 @@ def main():
                 print(f"PROGRESS {i + 1} {total}", flush=True)
                 continue
 
-            # 1. Raw copy (always)
-            raw_name = make_unique_name(base + "Raw", "jpg", used_filenames)
-            raw_path = os.path.join(export_dir, raw_name)
-            export_raw(img, raw_path)
-
-            # 2. Detect face and align (by face rect if template has it, else by eye positions)
+            # 1. Detect face and align (by face rect if template has it, else by eye positions)
             result = detect_face_and_eyes(img, face_cascade, eye_cascade, predictor_path)
             if result is None:
                 print(f"ERROR: No face detected in {os.path.basename(src_path)} ({first_name} {last_name})", flush=True)
@@ -108,7 +101,7 @@ def main():
             else:
                 aligned = align_to_template(img, left_eye, right_eye, template)
 
-            # 3. Export selected formats
+            # 2. Export selected formats
             for fmt in formats:
                 if fmt not in EXPORTERS:
                     continue

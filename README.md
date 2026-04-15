@@ -1,14 +1,14 @@
 # GoodPhotographer
 
-GoodPhotographer is a desktop app that batch-processes headshots so they all match the same framing and export in standard sizes. You upload photos, enter each person’s name and year, choose which formats to export (Website Bio, Spin Bio, Nucleus Round), and run. 
+GoodPhotographer is a desktop app that batch-processes headshots so they all match the same framing and export in standard sizes. You upload photos, enter each person’s name and year, choose which formats to export (Website Bio, Spin Bio, Nucleus Round), and run.
 
-The app detects the face in each image, aligns it to a template so head position and scale are consistent, and writes a Raw copy plus the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
+The app detects the face in each image, aligns it to a template so head position and scale are consistent, and writes the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
 
 ## From one shot prompt to installable app in 2 hours
 
 This project went from a single ChatGPT prompt to a packaged Mac app in about two hours. Here’s the path we took—useful if you want to repeat the pattern for your own idea.
 
-1. **Define the product in ChatGPT** — In one thread we described the app (batch headshot processor), user flow (upload → pick formats → process → open folder), and inputs/outputs (photos + names/year, timestamped export folder with Raw + Bio/Spin/Nucleus files). No code yet.
+1. **Define the product in ChatGPT** — In one thread we described the app (batch headshot processor), user flow (upload → pick formats → process → open folder), and inputs/outputs (photos + names/year, timestamped export folder with Bio/Spin/Nucleus files). No code yet.
 
 2. **Generate a PRD** — We asked ChatGPT to turn that into a Product Requirements Document: screens, validation rules, image processing and alignment requirements, export formats, filenames, and “definition of done.” That PRD became the single source of truth.
 
@@ -22,7 +22,7 @@ This project went from a single ChatGPT prompt to a packaged Mac app in about tw
 
 ---
 
-Batch-process headshots: normalize alignment to a template and export standardized image formats (Website Bio, Spin Bio, Nucleus Round). Raw copy is always saved.
+Batch-process headshots: normalize alignment to a template and export standardized image formats (Website Bio, Spin Bio, Nucleus Round).
 
 **Alignment template:** All photos are normalized to the same size and face position using **`resources/template.json`**. The template is **manually defined**: it specifies the canvas size (1024×683 for Bio) and a **reference face rectangle** (`face_left`, `face_top`, `face_width`, `face_height`) in pixels. Edit `template.json` to change framing. The reference image `resources/normal-headshot.png` is for visual reference only and is not read by the app.
 
@@ -102,14 +102,72 @@ Users only need to install the **.app** or **.dmg**; Python is not required.
 
 **Build installs:** **`npm run dist:all`** builds arm64, x64, and Universal DMGs and copies them to `release/`. Or run **`npm run dist:arm64`**, **`npm run dist:x64`**, or **`npm run dist:universal`** for a single target (each copies its DMG to `release/`). The `dist/` and `release/` folders are gitignored; share installers from `release/` outside the repo.
 
+## Browser version (GitHub Pages)
+
+The same app can run in the browser so others can use it without installing anything. Processing runs entirely in the browser (OpenCV.js); results are downloaded as a single zip file.
+
+### Test locally in the browser
+
+Use the normal browser build for local testing:
+
+```bash
+npm run build
+npx vite preview
+```
+
+Then:
+
+1. Open the preview URL shown in the terminal (usually `http://127.0.0.1:4173/`, or the next available port).
+2. Click **Add Photos** and select one or more images.
+3. Fill in first name, last name, and year for each photo.
+4. Choose the output formats you want.
+5. Click **Submit**.
+6. Wait for processing to finish. The first run may take a minute or two while OpenCV.js loads.
+7. Confirm that a zip file such as `GoodPhotographer-YYYY-MM-DD_HHMMSS.zip` downloads to your Downloads folder.
+
+If processing stalls or fails in the browser, open DevTools and check the Console for errors.
+
+### Deploy to GitHub Pages
+
+Use the GitHub Pages build for deployment:
+
+```bash
+npm run build:gh
+```
+
+This build is for the repo subpath on GitHub Pages. If your Pages URL will not be `https://<user>.github.io/good-photographer/`, update the `--base` value in the `build:gh` script in `package.json` (for example `--base /your-repo-name/`).
+
+Then deploy `dist/` to GitHub Pages:
+
+1. **Recommended:** Use a GitHub Actions workflow that runs `npm run build:gh` and publishes `dist/`.
+2. **Alternative:** Push the contents of `dist/` to a `gh-pages` branch.
+
+After deploy, open the live Pages URL and verify that:
+
+1. The app loads.
+2. Photos can be selected.
+3. Processing completes.
+4. A zip file downloads successfully.
+
+### Share the desktop app alongside the web version
+
+Keep the desktop app separate from GitHub Pages:
+
+1. Build the Mac installers with `npm run dist:all` or one of the platform-specific `dist:*` scripts.
+2. Upload the generated files from `release/` to a GitHub Release.
+3. Add a `Download Mac App` button or link in the web app that points to the release page or a specific DMG asset.
+
+The desktop app (Electron) stays unchanged; GitHub Pages hosts only the browser version.
+
 ## Export location
 
-Files are written to:
+**Desktop app:** Files are written to  
 `~/Downloads/GoodPhotographer/YYYY-MM-DD_HHMMSS/`
+
+**Browser:** A single zip file (e.g. `GoodPhotographer-YYYY-MM-DD_HHMMSS.zip`) is downloaded to the user’s Downloads folder.
 
 ## Output formats
 
-- **Raw** (always): `LastName-FirstName-YYYYRaw.jpg`
 - **Website Bio**: 1024×683 JPEG – `…Bio.jpg`
 - **Spin Bio**: 510×510 JPEG – `…Spin.jpg`
 - **Nucleus Round**: 510×510 PNG, circular mask – `…Nucleus.png`

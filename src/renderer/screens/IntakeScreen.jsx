@@ -3,7 +3,7 @@ import PhotoRow from '../components/PhotoRow';
 import logo from '../assets/logo.png';
 
 const FORMAT_OPTIONS = [
-  { id: 'websiteBio', label: 'Website Bio (1000 × 684 JPEG)', key: 'websiteBio' },
+  { id: 'websiteBio', label: 'Website Bio (1024 × 683 JPEG)', key: 'websiteBio' },
   { id: 'spinBio', label: 'Spin Bio (510 × 510 JPEG)', key: 'spinBio' },
   { id: 'nucleusRound', label: 'Nucleus Round (510 × 510 PNG, circular mask)', key: 'nucleusRound' },
 ];
@@ -30,18 +30,28 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
   const canSubmit = allRowsValid && atLeastOneFormat(formats);
 
   const handleAddPhotos = async () => {
-    const paths = await window.electronAPI.selectPhotos();
+    const selected = await window.electronAPI.selectPhotos();
     const year = new Date().getFullYear();
     setPhotos((prev) => {
       const existing = new Set(prev.map((p) => p.path));
-      const toAdd = paths.filter((p) => !existing.has(p)).map((filePath) => ({
-        id: filePath + Date.now(),
-        path: filePath,
-        name: filePath.split(/[/\\]/).pop(),
-        firstName: '',
-        lastName: '',
-        year,
-      }));
+      const toAdd = selected
+        .filter((item) => {
+          const path = typeof item === 'string' ? item : item.path;
+          return !existing.has(path);
+        })
+        .map((item) => {
+          const path = typeof item === 'string' ? item : item.path;
+          const file = typeof item === 'object' && item.file ? item.file : null;
+          return {
+            id: path + Date.now() + Math.random(),
+            path,
+            name: path.split(/[/\\]/).pop(),
+            ...(file && { file }),
+            firstName: '',
+            lastName: '',
+            year,
+          };
+        });
       return toAdd.length ? [...prev, ...toAdd] : prev;
     });
   };
@@ -59,7 +69,7 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
       <img src={logo} alt="GoodPhotographer" className="intake-logo" />
       <h1>GoodPhotographer</h1>
       <p className="description">
-        Batch-process headshots: normalize alignment to a template and export standardized image formats.
+        Upload a headshot photo, and the app automatically centers, aligns, and crops it into a standardized portrait. Export in Website Bio, Spin Bio, or Nucleus Round formats. 
       </p>
 
       <button type="button" onClick={handleAddPhotos}>

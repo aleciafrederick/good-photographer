@@ -21,10 +21,13 @@ export default function ConfirmationScreen({ exportDir, result, onOpenFolder, on
         </div>
       )}
       <div className="actions">
-        {exportDir && (
+        {exportDir && !window.electronAPI?.isBrowser && (
           <button type="button" onClick={onOpenFolder}>
             Open export folder
           </button>
+        )}
+        {exportDir && window.electronAPI?.isBrowser && success && (
+          <p className="browser-download-note">Your zip file has been downloaded.</p>
         )}
         <button type="button" className="secondary" onClick={onReset}>
           Start over
