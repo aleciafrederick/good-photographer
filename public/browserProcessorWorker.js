@@ -1,6 +1,16 @@
 const OPENCV_JS_URL = 'https://docs.opencv.org/4.8.0/opencv.js';
 const OPENCV_LOAD_TIMEOUT_MS = 120000;
 const MAX_DETECTION_DIM = 1600;
+const DEFAULT_FORMAT_SUFFIXES = {
+  website_bio: 'Bio',
+  spin_bio: 'Spin',
+  nucleus_round: 'Nucleus',
+};
+const FORMAT_EXTENSIONS = {
+  website_bio: 'jpg',
+  spin_bio: 'jpg',
+  nucleus_round: 'png',
+};
 
 let cvPromise = null;
 
@@ -19,6 +29,13 @@ function sanitize(value) {
     .trim() || 'Unknown';
 }
 
+function sanitizeFilenamePart(value) {
+  return String(value || '')
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]/g, '')
+    .trim();
+}
+
 function baseFilename(lastName, firstName, year) {
   return `${sanitize(lastName)}-${sanitize(firstName)}-${String(year).trim()}`;
 }
@@ -34,6 +51,33 @@ function makeUniqueName(base, ext, used) {
   name = `${base}-${i}.${ext}`;
   used.add(name);
   return name;
+}
+
+function normalizeFormats(formats) {
+  return (Array.isArray(formats) ? formats : [])
+    .map((format) => {
+      if (typeof format === 'string') {
+        const defaultSuffix = DEFAULT_FORMAT_SUFFIXES[format];
+        const ext = FORMAT_EXTENSIONS[format];
+        if (!defaultSuffix || !ext) return null;
+        return { id: format, suffix: defaultSuffix, ext };
+      }
+
+      if (!format || typeof format !== 'object') return null;
+
+      const id = format.id;
+      const defaultSuffix = DEFAULT_FORMAT_SUFFIXES[id];
+      const ext = FORMAT_EXTENSIONS[id];
+      if (!defaultSuffix || !ext) return null;
+
+      const cleanSuffix = sanitizeFilenamePart(format.suffix);
+      return {
+        id,
+        suffix: cleanSuffix || defaultSuffix,
+        ext,
+      };
+    })
+    .filter(Boolean);
 }
 
 function createProgress(state, extra = {}) {
@@ -343,6 +387,7 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
   const imageName = photo.file?.name || photo.path || `Image ${imageNumber}`;
   const base = baseFilename(photo.lastName, photo.firstName, photo.year);
   const results = [];
+  const selectedFormats = new Map(formats.map((format) => [format.id, format]));
 
   let img = null;
   let aligned = null;
@@ -395,7 +440,8 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
     aligned = alignByFace(cv, img, scaleFaceRect(detected, detection.scaleX, detection.scaleY), template);
 
     const templateFormats = template.formats || {};
-    if (formats.includes('website_bio')) {
+    if (selectedFormats.has('website_bio')) {
+      const format = selectedFormats.get('website_bio');
       updateProgress(state, {
         phase: 'processing',
         phaseLabel: 'Processing photos…',
@@ -405,12 +451,13 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
         imageName,
       });
       results.push({
-        name: makeUniqueName(base + 'Bio', 'jpg', usedFilenames),
+        name: makeUniqueName(base + format.suffix, format.ext, usedFilenames),
         blob: await exportWebsiteBio(cv, aligned, templateFormats.website_bio || {}),
       });
     }
 
-    if (formats.includes('spin_bio')) {
+    if (selectedFormats.has('spin_bio')) {
+      const format = selectedFormats.get('spin_bio');
       updateProgress(state, {
         phase: 'processing',
         phaseLabel: 'Processing photos…',
@@ -420,12 +467,13 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
         imageName,
       });
       results.push({
-        name: makeUniqueName(base + 'Spin', 'jpg', usedFilenames),
+        name: makeUniqueName(base + format.suffix, format.ext, usedFilenames),
         blob: await exportSpinBio(cv, aligned, templateFormats.spin_bio || {}),
       });
     }
 
-    if (formats.includes('nucleus_round')) {
+    if (selectedFormats.has('nucleus_round')) {
+      const format = selectedFormats.get('nucleus_round');
       updateProgress(state, {
         phase: 'processing',
         phaseLabel: 'Processing photos…',
@@ -435,7 +483,7 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
         imageName,
       });
       results.push({
-        name: makeUniqueName(base + 'Nucleus', 'png', usedFilenames),
+        name: makeUniqueName(base + format.suffix, format.ext, usedFilenames),
         blob: await exportNucleusRound(cv, aligned, templateFormats.nucleus_round || {}),
       });
     }
@@ -451,6 +499,7 @@ async function processOnePhoto(cv, classifier, template, photo, formats, usedFil
 
 async function runBrowserProcessor(payload) {
   const { photos, formats, baseUrl } = payload;
+  const normalizedFormats = normalizeFormats(formats);
   const state = {
     current: 0,
     total: photos.length,
@@ -502,7 +551,16 @@ async function runBrowserProcessor(payload) {
       }
 
       try {
-        const { results, error } = await processOnePhoto(cv, classifier, template, photo, formats, usedFilenames, state, i);
+        const { results, error } = await processOnePhoto(
+          cv,
+          classifier,
+          template,
+          photo,
+          normalizedFormats,
+          usedFilenames,
+          state,
+          i
+        );
         files.push(...results);
         if (error) errors.push(error);
       } catch (error) {

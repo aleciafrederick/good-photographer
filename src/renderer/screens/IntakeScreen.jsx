@@ -3,10 +3,29 @@ import PhotoRow from '../components/PhotoRow';
 import logo from '../assets/logo.png';
 
 const FORMAT_OPTIONS = [
-  { id: 'websiteBio', label: 'Website Bio (1024 × 683 JPEG)', key: 'websiteBio' },
-  { id: 'spinBio', label: 'Spin Bio (510 × 510 JPEG)', key: 'spinBio' },
-  { id: 'nucleusRound', label: 'Nucleus Round (510 × 510 PNG, circular mask)', key: 'nucleusRound' },
+  {
+    id: 'websiteBio',
+    label: 'Website Bio (1024 × 683 JPEG)',
+    key: 'websiteBio',
+    suffixKey: 'websiteBioSuffix',
+  },
+  {
+    id: 'spinBio',
+    label: 'Spin Bio (510 × 510 JPEG)',
+    key: 'spinBio',
+    suffixKey: 'spinBioSuffix',
+  },
+  {
+    id: 'nucleusRound',
+    label: 'Nucleus Round (510 × 510 PNG, circular mask)',
+    key: 'nucleusRound',
+    suffixKey: 'nucleusRoundSuffix',
+  },
 ];
+
+function stripSpaces(value) {
+  return String(value).replace(/\s+/g, '');
+}
 
 function validYear(year) {
   const y = String(year).trim();
@@ -95,14 +114,25 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
         <h2>Output format</h2>
         <p className="formats-hint">At least one format must be selected.</p>
         {FORMAT_OPTIONS.map((opt) => (
-          <label key={opt.id} className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={formats[opt.key]}
-              onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
-            />
-            <span>{opt.label}</span>
-          </label>
+          <div key={opt.id} className="format-option">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={formats[opt.key]}
+                onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
+              />
+              <span>{opt.label}</span>
+            </label>
+            <label className="format-suffix-label">
+              <span>Extension text</span>
+              <input
+                type="text"
+                value={formats[opt.suffixKey]}
+                onChange={(e) => setFormats({ ...formats, [opt.suffixKey]: stripSpaces(e.target.value) })}
+                placeholder="Enter filename suffix"
+              />
+            </label>
+          </div>
         ))}
       </section>
 

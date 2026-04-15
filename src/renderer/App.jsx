@@ -4,15 +4,19 @@ import ProcessingScreen from './screens/ProcessingScreen';
 import ConfirmationScreen from './screens/ConfirmationScreen';
 
 const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
+const DEFAULT_FORMATS = {
+  websiteBio: true,
+  websiteBioSuffix: 'Bio',
+  spinBio: true,
+  spinBioSuffix: 'Spin',
+  nucleusRound: true,
+  nucleusRoundSuffix: 'Nucleus',
+};
 
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.INTAKE);
   const [photos, setPhotos] = useState([]);
-  const [formats, setFormats] = useState({
-    websiteBio: true,
-    spinBio: true,
-    nucleusRound: true,
-  });
+  const [formats, setFormats] = useState(DEFAULT_FORMATS);
   const [exportDir, setExportDir] = useState(null);
   const [processingResult, setProcessingResult] = useState(null);
 
@@ -22,9 +26,15 @@ export default function App() {
     setScreen(SCREENS.PROCESSING);
 
     const formatList = [];
-    if (formats.websiteBio) formatList.push('website_bio');
-    if (formats.spinBio) formatList.push('spin_bio');
-    if (formats.nucleusRound) formatList.push('nucleus_round');
+    if (formats.websiteBio) {
+      formatList.push({ id: 'website_bio', suffix: formats.websiteBioSuffix });
+    }
+    if (formats.spinBio) {
+      formatList.push({ id: 'spin_bio', suffix: formats.spinBioSuffix });
+    }
+    if (formats.nucleusRound) {
+      formatList.push({ id: 'nucleus_round', suffix: formats.nucleusRoundSuffix });
+    }
 
     const payload = {
       exportDir: exportDirPath,
@@ -50,7 +60,7 @@ export default function App() {
 
   const handleReset = useCallback(() => {
     setPhotos([]);
-    setFormats({ websiteBio: true, spinBio: true, nucleusRound: true });
+    setFormats(DEFAULT_FORMATS);
     setExportDir(null);
     setProcessingResult(null);
     setScreen(SCREENS.INTAKE);

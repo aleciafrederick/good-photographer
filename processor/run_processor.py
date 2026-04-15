@@ -14,6 +14,7 @@ from export_formats import (
     base_filename,
     make_unique_name,
     EXPORTERS,
+    sanitize_filename_part,
 )
 
 
@@ -33,6 +34,43 @@ def _haarcascades_dir():
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(SCRIPT_DIR, "..", "resources")
 PREDICTOR_PATH = os.path.join(RESOURCES_DIR, "shape_predictor_68_face_landmarks.dat")
+DEFAULT_FORMAT_SUFFIXES = {
+    "website_bio": "Bio",
+    "spin_bio": "Spin",
+    "nucleus_round": "Nucleus",
+}
+FORMAT_EXTENSIONS = {
+    "website_bio": "jpg",
+    "spin_bio": "jpg",
+    "nucleus_round": "png",
+}
+
+
+def normalize_formats(formats):
+    normalized = []
+    for fmt in formats:
+        if isinstance(fmt, str):
+            fmt_id = fmt
+            suffix = DEFAULT_FORMAT_SUFFIXES.get(fmt_id, "")
+        elif isinstance(fmt, dict):
+            fmt_id = fmt.get("id")
+            suffix = str(fmt.get("suffix", "")).strip() or DEFAULT_FORMAT_SUFFIXES.get(fmt_id, "")
+        else:
+            continue
+
+        if fmt_id not in EXPORTERS:
+            continue
+
+        default_suffix = DEFAULT_FORMAT_SUFFIXES.get(fmt_id, "")
+        clean_suffix = sanitize_filename_part(suffix) if suffix else default_suffix
+        normalized.append(
+            {
+                "id": fmt_id,
+                "suffix": clean_suffix or default_suffix,
+                "ext": FORMAT_EXTENSIONS[fmt_id],
+            }
+        )
+    return normalized
 
 
 def main():
@@ -45,7 +83,7 @@ def main():
 
     export_dir = config["export_dir"]
     photos = config["photos"]
-    formats = config["formats"]
+    formats = normalize_formats(config["formats"])
     template_path = config.get("template_path")
     if not template_path or not os.path.isfile(template_path):
         print("ERROR: Template file not found", file=sys.stderr)
@@ -103,19 +141,11 @@ def main():
 
             # 2. Export selected formats
             for fmt in formats:
-                if fmt not in EXPORTERS:
-                    continue
-                tfmt = template.get("formats", {}).get(fmt, {})
-                if fmt == "website_bio":
-                    name = make_unique_name(base + "Bio", "jpg", used_filenames)
-                elif fmt == "spin_bio":
-                    name = make_unique_name(base + "Spin", "jpg", used_filenames)
-                elif fmt == "nucleus_round":
-                    name = make_unique_name(base + "Nucleus", "png", used_filenames)
-                else:
-                    continue
+                fmt_id = fmt["id"]
+                tfmt = template.get("formats", {}).get(fmt_id, {})
+                name = make_unique_name(base + fmt["suffix"], fmt["ext"], used_filenames)
                 out_path = os.path.join(export_dir, name)
-                EXPORTERS[fmt](aligned, out_path, tfmt)
+                EXPORTERS[fmt_id](aligned, out_path, tfmt)
 
         except Exception as e:
             print(f"ERROR: {os.path.basename(src_path)} ({first_name} {last_name}): {e}", flush=True)

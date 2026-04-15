@@ -124,6 +124,26 @@ label {
   color: #475569;
   cursor: default;
 }
+.photo-row .filename-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.photo-row .filename-display .filename-input {
+  flex: 1;
+  min-width: 0;
+}
+.photo-row .filename-thumb {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+.photo-row .filename-thumb-placeholder {
+  border: 1px solid #cbd5e1;
+}
 .photo-row .delete-btn {
   flex-shrink: 0;
   align-self: flex-end;
@@ -155,6 +175,23 @@ label {
 }
 .checkbox-label input {
   width: auto;
+}
+.format-option {
+  margin-bottom: 12px;
+}
+.format-suffix-label {
+  display: block;
+  margin-left: 28px;
+  font-size: 12px;
+  color: #475569;
+}
+.format-suffix-label span {
+  display: block;
+  margin-bottom: 4px;
+}
+.format-suffix-label input {
+  max-width: 220px;
+  font-size: 14px;
 }
 .submit-row {
   margin-top: 24px;
