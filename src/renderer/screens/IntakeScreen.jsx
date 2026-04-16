@@ -130,22 +130,24 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
         <p className="formats-hint">At least one format must be selected.</p>
         {FORMAT_OPTIONS.map((opt) => (
           <div key={opt.id} className="format-option">
-            <label className="checkbox-label">
+            <input
+              id={`${opt.id}-checkbox`}
+              className="format-checkbox"
+              type="checkbox"
+              checked={formats[opt.key]}
+              onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
+            />
+            <label className="format-suffix-label" htmlFor={`${opt.id}-suffix`}>
               <input
-                type="checkbox"
-                checked={formats[opt.key]}
-                onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
-              />
-              <span>{opt.label}</span>
-            </label>
-            <label className="format-suffix-label">
-              <span>Extension text</span>
-              <input
+                id={`${opt.id}-suffix`}
                 type="text"
                 value={formats[opt.suffixKey]}
                 onChange={(e) => setFormats({ ...formats, [opt.suffixKey]: stripSpaces(e.target.value) })}
                 placeholder="Enter filename suffix"
               />
+            </label>
+            <label className="checkbox-label" htmlFor={`${opt.id}-checkbox`}>
+              <span>{opt.label}</span>
             </label>
           </div>
         ))}

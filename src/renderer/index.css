@@ -165,41 +165,36 @@ label {
   color: #64748b;
   margin: 0 0 8px;
 }
+.format-checkbox {
+  width: auto;
+  margin: 0;
+}
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin-bottom: 0;
   cursor: pointer;
   font-weight: normal;
-  flex: 1 1 auto;
-}
-.checkbox-label input {
-  width: auto;
+  flex: 0 0 auto;
 }
 .format-option {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 10px;
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
 .format-suffix-label {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin-left: 0;
   font-size: 12px;
   color: #475569;
 }
-.format-suffix-label span {
-  display: inline;
-  margin-bottom: 0;
-  white-space: nowrap;
-}
 .format-suffix-label input {
-  width: 220px;
-  max-width: 220px;
+  width: 140px;
+  max-width: 140px;
   font-size: 14px;
 }
 .submit-row {
