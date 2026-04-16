@@ -62,7 +62,7 @@ h3 {
   color: var(--ao-dark);
 }
 
-.lede-copy,
+.intro-copy,
 .status-copy {
   margin: 0 0 24px;
   font-size: 18px;
@@ -71,14 +71,14 @@ h3 {
   max-width: 48ch;
 }
 
-.lede-tabs {
+.tool-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin: 4px 0 24px;
 }
 
-.lede-tab {
+.tool-tab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -95,23 +95,23 @@ h3 {
   cursor: pointer;
 }
 
-.lede-tab:hover {
+.tool-tab:hover {
   background: transparent;
   color: var(--ao-dark);
 }
 
-.lede-tab:focus-visible {
+.tool-tab:focus-visible {
   outline: 2px solid var(--ao-dark);
   outline-offset: 2px;
 }
 
-.lede-tab.is-active {
+.tool-tab.is-active {
   background: var(--ao-dark);
   color: var(--ao-white);
   cursor: default;
 }
 
-.lede-tab.is-active:hover {
+.tool-tab.is-active:hover {
   background: var(--ao-dark);
   color: var(--ao-white);
 }
@@ -310,7 +310,7 @@ button {
   align-items: start;
 }
 
-.intake-lede {
+.intake-intro {
   position: sticky;
   top: 32px;
 }
@@ -587,7 +587,7 @@ button {
 
 .status-screen {
   max-width: 560px;
-  margin: 24px auto 0;
+  margin: 0;
   text-align: left;
 }
 
@@ -674,7 +674,7 @@ button {
     gap: 40px;
   }
 
-  .intake-lede {
+  .intake-intro {
     position: static;
   }
 

@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
 import IntakeScreen from './screens/IntakeScreen';
 import MetaImageIntakeScreen from './screens/MetaImageIntakeScreen';
-import ProcessingScreen from './screens/ProcessingScreen';
-import ConfirmationScreen from './screens/ConfirmationScreen';
 import { appAPI } from './web/appApi';
 
 const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
@@ -60,19 +58,22 @@ function AppShell({ children }) {
 
 export default function App() {
   const [tab, setTab] = useState(TABS.HEADSHOTS);
-  const [screen, setScreen] = useState(SCREENS.INTAKE);
-  const [processingResult, setProcessingResult] = useState(null);
-  const [processingTotal, setProcessingTotal] = useState(0);
 
   const [headshotPhotos, setHeadshotPhotos] = useState([]);
   const [headshotFormats, setHeadshotFormats] = useState(DEFAULT_HEADSHOT_FORMATS);
+  const [headshotScreen, setHeadshotScreen] = useState(SCREENS.INTAKE);
+  const [headshotResult, setHeadshotResult] = useState(null);
+  const [headshotTotal, setHeadshotTotal] = useState(0);
 
   const [metaPhotos, setMetaPhotos] = useState([]);
   const [metaFormats, setMetaFormats] = useState(DEFAULT_META_FORMATS);
+  const [metaScreen, setMetaScreen] = useState(SCREENS.INTAKE);
+  const [metaResult, setMetaResult] = useState(null);
+  const [metaTotal, setMetaTotal] = useState(0);
 
   const handleSubmitHeadshots = useCallback(async () => {
-    setProcessingTotal(headshotPhotos.length);
-    setScreen(SCREENS.PROCESSING);
+    setHeadshotTotal(headshotPhotos.length);
+    setHeadshotScreen(SCREENS.PROCESSING);
 
     const formatList = [];
     if (headshotFormats.websiteBio) {
@@ -98,17 +99,17 @@ export default function App() {
 
     try {
       const result = await appAPI.runProcessor(payload);
-      setProcessingResult(result);
-      setScreen(SCREENS.CONFIRMATION);
+      setHeadshotResult(result);
+      setHeadshotScreen(SCREENS.CONFIRMATION);
     } catch (err) {
-      setProcessingResult({ success: false, downloaded: false, errors: [err.message] });
-      setScreen(SCREENS.CONFIRMATION);
+      setHeadshotResult({ success: false, downloaded: false, errors: [err.message] });
+      setHeadshotScreen(SCREENS.CONFIRMATION);
     }
   }, [headshotPhotos, headshotFormats]);
 
   const handleSubmitMeta = useCallback(async () => {
-    setProcessingTotal(metaPhotos.length);
-    setScreen(SCREENS.PROCESSING);
+    setMetaTotal(metaPhotos.length);
+    setMetaScreen(SCREENS.PROCESSING);
 
     const formatList = [];
     if (metaFormats.ogLandscape) {
@@ -132,40 +133,32 @@ export default function App() {
 
     try {
       const result = await appAPI.runMetaProcessor(payload);
-      setProcessingResult(result);
-      setScreen(SCREENS.CONFIRMATION);
+      setMetaResult(result);
+      setMetaScreen(SCREENS.CONFIRMATION);
     } catch (err) {
-      setProcessingResult({ success: false, downloaded: false, errors: [err.message] });
-      setScreen(SCREENS.CONFIRMATION);
+      setMetaResult({ success: false, downloaded: false, errors: [err.message] });
+      setMetaScreen(SCREENS.CONFIRMATION);
     }
   }, [metaPhotos, metaFormats]);
 
-  const handleReset = useCallback(() => {
-    if (tab === TABS.META) {
-      setMetaPhotos([]);
-      setMetaFormats(DEFAULT_META_FORMATS);
-    } else {
-      setHeadshotPhotos([]);
-      setHeadshotFormats(DEFAULT_HEADSHOT_FORMATS);
-    }
-    setProcessingResult(null);
-    setProcessingTotal(0);
-    setScreen(SCREENS.INTAKE);
-  }, [tab]);
+  const handleResetHeadshots = useCallback(() => {
+    setHeadshotPhotos([]);
+    setHeadshotFormats(DEFAULT_HEADSHOT_FORMATS);
+    setHeadshotResult(null);
+    setHeadshotTotal(0);
+    setHeadshotScreen(SCREENS.INTAKE);
+  }, []);
 
-  let content;
-  if (screen === SCREENS.PROCESSING) {
-    content = <ProcessingScreen total={processingTotal} />;
-  } else if (screen === SCREENS.CONFIRMATION) {
-    content = (
-      <ConfirmationScreen
-        result={processingResult}
-        onReset={handleReset}
-        itemLabel={tab === TABS.META ? 'meta images' : 'headshots'}
-      />
-    );
-  } else if (tab === TABS.META) {
-    content = (
+  const handleResetMeta = useCallback(() => {
+    setMetaPhotos([]);
+    setMetaFormats(DEFAULT_META_FORMATS);
+    setMetaResult(null);
+    setMetaTotal(0);
+    setMetaScreen(SCREENS.INTAKE);
+  }, []);
+
+  const content =
+    tab === TABS.META ? (
       <MetaImageIntakeScreen
         activeTab={tab}
         onTabChange={setTab}
@@ -174,10 +167,12 @@ export default function App() {
         formats={metaFormats}
         setFormats={setMetaFormats}
         onSubmit={handleSubmitMeta}
+        screen={metaScreen}
+        processingResult={metaResult}
+        processingTotal={metaTotal}
+        onReset={handleResetMeta}
       />
-    );
-  } else {
-    content = (
+    ) : (
       <IntakeScreen
         activeTab={tab}
         onTabChange={setTab}
@@ -186,9 +181,12 @@ export default function App() {
         formats={headshotFormats}
         setFormats={setHeadshotFormats}
         onSubmit={handleSubmitHeadshots}
+        screen={headshotScreen}
+        processingResult={headshotResult}
+        processingTotal={headshotTotal}
+        onReset={handleResetHeadshots}
       />
     );
-  }
 
   return <AppShell>{content}</AppShell>;
 }

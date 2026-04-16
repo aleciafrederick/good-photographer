@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import PhotoRow from '../components/PhotoRow';
-import LedeTabs from '../components/LedeTabs';
+import ToolTabs from '../components/ToolTabs';
+import ProcessingScreen from './ProcessingScreen';
+import ConfirmationScreen from './ConfirmationScreen';
 import { appAPI } from '../web/appApi';
+
+const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
 
 const FORMAT_OPTIONS = [
   {
@@ -70,6 +74,10 @@ export default function IntakeScreen({
   formats,
   setFormats,
   onSubmit,
+  screen = SCREENS.INTAKE,
+  processingResult = null,
+  processingTotal = 0,
+  onReset,
 }) {
   const allRowsValid = useMemo(() => photos.length > 0 && photos.every(rowValid), [photos]);
   const canSubmit = allRowsValid && atLeastOneFormat(formats);
@@ -108,17 +116,27 @@ export default function IntakeScreen({
 
   return (
     <div className="intake-grid">
-      <section className="intake-lede">
+      <section className="intake-intro">
         <h1 className="display-heading">
           Prepare a consistent export set for the web.
         </h1>
-        <p className="lede-copy">
+        <p className="intro-copy">
           Upload headshots, confirm naming details, and choose which Atomic-ready formats to generate. Each photo is automatically aligned and cropped into a standardized portrait.
         </p>
-        <LedeTabs activeTab={activeTab} onChange={onTabChange} />
+        <ToolTabs activeTab={activeTab} onChange={onTabChange} />
       </section>
 
       <section className="intake-form">
+        {screen === SCREENS.PROCESSING ? (
+          <ProcessingScreen total={processingTotal} />
+        ) : screen === SCREENS.CONFIRMATION ? (
+          <ConfirmationScreen
+            result={processingResult}
+            onReset={onReset}
+            itemLabel="headshots"
+          />
+        ) : (
+          <>
         <div className="form-section">
           <div className="form-section-head">
             <h2>Upload photos to get started.</h2>
@@ -196,6 +214,8 @@ export default function IntakeScreen({
             Generate Exports
           </button>
         </div>
+          </>
+        )}
       </section>
     </div>
   );

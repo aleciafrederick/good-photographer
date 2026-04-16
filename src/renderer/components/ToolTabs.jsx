@@ -3,16 +3,16 @@ const TABS = [
   { id: 'meta', label: 'Meta Image Generator' },
 ];
 
-export default function LedeTabs({ activeTab, onChange }) {
+export default function ToolTabs({ activeTab, onChange }) {
   return (
-    <nav className="lede-tabs" aria-label="Tool">
+    <nav className="tool-tabs" aria-label="Tool">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <button
             key={tab.id}
             type="button"
-            className={`lede-tab${isActive ? ' is-active' : ''}`}
+            className={`tool-tab${isActive ? ' is-active' : ''}`}
             aria-pressed={isActive}
             onClick={() => {
               if (!isActive) onChange(tab.id);

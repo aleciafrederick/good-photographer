@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import MetaPhotoRow from '../components/MetaPhotoRow';
-import LedeTabs from '../components/LedeTabs';
+import ToolTabs from '../components/ToolTabs';
+import ProcessingScreen from './ProcessingScreen';
+import ConfirmationScreen from './ConfirmationScreen';
 import { appAPI } from '../web/appApi';
+
+const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
 
 const FORMAT_OPTIONS = [
   {
@@ -76,6 +80,10 @@ export default function MetaImageIntakeScreen({
   formats,
   setFormats,
   onSubmit,
+  screen = SCREENS.INTAKE,
+  processingResult = null,
+  processingTotal = 0,
+  onReset,
 }) {
   const allRowsValid = useMemo(() => photos.length > 0 && photos.every(rowValid), [photos]);
   const canSubmit = allRowsValid && atLeastOneFormat(formats);
@@ -117,17 +125,27 @@ export default function MetaImageIntakeScreen({
 
   return (
     <div className="intake-grid">
-      <section className="intake-lede">
+      <section className="intake-intro">
         <h1 className="display-heading">
           Generate meta image assets for any web page.
         </h1>
-        <p className="lede-copy">
+        <p className="intro-copy">
           Upload hero imagery, set a base filename, and the app will export a consistent set of meta tag images at the sizes used by Open Graph and Twitter cards.
         </p>
-        <LedeTabs activeTab={activeTab} onChange={onTabChange} />
+        <ToolTabs activeTab={activeTab} onChange={onTabChange} />
       </section>
 
       <section className="intake-form">
+        {screen === SCREENS.PROCESSING ? (
+          <ProcessingScreen total={processingTotal} />
+        ) : screen === SCREENS.CONFIRMATION ? (
+          <ConfirmationScreen
+            result={processingResult}
+            onReset={onReset}
+            itemLabel="meta images"
+          />
+        ) : (
+          <>
         <div className="form-section">
           <div className="form-section-head">
             <h2>Upload images to get started.</h2>
@@ -206,6 +224,8 @@ export default function MetaImageIntakeScreen({
             Generate Exports
           </button>
         </div>
+          </>
+        )}
       </section>
     </div>
   );
