@@ -39,7 +39,7 @@ function triggerDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function buildMetadata(payload) {
+function buildHeadshotMetadata(payload) {
   return {
     photos: payload.photos.map((photo) => ({
       path: photo.path,
@@ -51,9 +51,19 @@ function buildMetadata(payload) {
   };
 }
 
-function buildFormData(payload) {
+function buildMetaMetadata(payload) {
+  return {
+    photos: payload.photos.map((photo) => ({
+      path: photo.path,
+      baseName: photo.baseName,
+    })),
+    formats: payload.formats,
+  };
+}
+
+function buildFormData(payload, metadata) {
   const formData = new FormData();
-  formData.append('metadata', JSON.stringify(buildMetadata(payload)));
+  formData.append('metadata', JSON.stringify(metadata));
   payload.photos.forEach((photo, index) => {
     if (!photo.file) {
       throw new Error(`Missing upload for photo ${index + 1}.`);
@@ -86,7 +96,7 @@ async function downloadProcessedZip(downloadUrl, filename) {
   triggerDownload(blob, filename);
 }
 
-function runProcessor(payload) {
+function submitProcessingJob({ endpoint, payload, metadata, defaultDownloadName }) {
   const runToken = ++currentRunToken;
   emitProgress(
     {
@@ -101,9 +111,9 @@ function runProcessor(payload) {
     runToken
   );
 
-  const processorPromise = fetch('/api/process', {
+  const processorPromise = fetch(endpoint, {
     method: 'POST',
-    body: buildFormData(payload),
+    body: buildFormData(payload, metadata),
   })
     .then(fetchJsonOrThrow)
     .then(async (result) => {
@@ -134,7 +144,7 @@ function runProcessor(payload) {
           },
           runToken
         );
-        await downloadProcessedZip(result.downloadUrl, result.downloadFilename || 'GoodPhotographer.zip');
+        await downloadProcessedZip(result.downloadUrl, result.downloadFilename || defaultDownloadName);
       }
 
       return {
@@ -157,6 +167,24 @@ function runProcessor(payload) {
   return Promise.race([processorPromise, timeoutPromise]);
 }
 
+function runProcessor(payload) {
+  return submitProcessingJob({
+    endpoint: '/api/process',
+    payload,
+    metadata: buildHeadshotMetadata(payload),
+    defaultDownloadName: 'AtomicPhotographer.zip',
+  });
+}
+
+function runMetaProcessor(payload) {
+  return submitProcessingJob({
+    endpoint: '/api/process-meta',
+    payload,
+    metadata: buildMetaMetadata(payload),
+    defaultDownloadName: 'AtomicMeta.zip',
+  });
+}
+
 function onProcessorProgress(fn) {
   progressCallback = fn;
   if (lastProgress) {
@@ -172,5 +200,6 @@ function onProcessorProgress(fn) {
 export const appAPI = {
   selectPhotos,
   runProcessor,
+  runMetaProcessor,
   onProcessorProgress,
 };

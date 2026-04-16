@@ -17,13 +17,14 @@ from starlette.background import BackgroundTask
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DIST_DIR = ROOT_DIR / 'dist'
 PROCESSOR_SCRIPT = ROOT_DIR / 'processor' / 'run_processor.py'
+META_PROCESSOR_SCRIPT = ROOT_DIR / 'processor' / 'run_meta_processor.py'
 TEMPLATE_PATH = ROOT_DIR / 'resources' / 'template.json'
 JOBS_ROOT = Path(tempfile.gettempdir()) / 'good-photographer-jobs'
 JOBS_ROOT.mkdir(parents=True, exist_ok=True)
 PROCESSOR_TIMEOUT_SECONDS = 300
 JOB_TTL_SECONDS = 60 * 60
 
-app = FastAPI(title='GoodPhotographer API')
+app = FastAPI(title='Atomic Photographer API')
 jobs = {}
 
 
@@ -65,9 +66,9 @@ def parse_processor_errors(stdout_text, stderr_text, exit_code):
     return errors
 
 
-def build_download_filename():
+def build_download_filename(prefix='AtomicPhotographer'):
     now = time.localtime()
-    return time.strftime('GoodPhotographer-%Y-%m-%d_%H%M%S.zip', now)
+    return time.strftime(f'{prefix}-%Y-%m-%d_%H%M%S.zip', now)
 
 
 def create_zip_file(export_dir, zip_path):
@@ -82,6 +83,77 @@ def save_upload_file(upload, destination):
         shutil.copyfileobj(upload.file, output_file)
 
 
+def parse_metadata_payload(metadata: str):
+    try:
+        return json.loads(metadata)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail=f'Invalid metadata JSON: {exc.msg}') from exc
+
+
+def make_job_dirs(prefix: str):
+    temp_dir = Path(tempfile.mkdtemp(prefix=prefix, dir=JOBS_ROOT))
+    uploads_dir = temp_dir / 'uploads'
+    export_dir = temp_dir / 'export'
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    export_dir.mkdir(parents=True, exist_ok=True)
+    return temp_dir, uploads_dir, export_dir
+
+
+def save_uploads_to_paths(files, uploads_dir):
+    saved = []
+    for index, upload in enumerate(files, start=1):
+        original_name = Path(upload.filename or f'photo-{index}.jpg').name
+        suffix = Path(original_name).suffix or '.jpg'
+        saved_path = uploads_dir / f'{index:03d}{suffix.lower()}'
+        save_upload_file(upload, saved_path)
+        saved.append(saved_path)
+    return saved
+
+
+def run_processor_script(script_path: Path, config_path: Path):
+    return subprocess.run(
+        [sys.executable, str(script_path), str(config_path)],
+        cwd=str(script_path.parent),
+        capture_output=True,
+        text=True,
+        timeout=PROCESSOR_TIMEOUT_SECONDS,
+        check=False,
+    )
+
+
+def finalize_job(temp_dir: Path, export_dir: Path, errors, return_code, download_prefix: str):
+    output_files = [path for path in export_dir.iterdir() if path.is_file()]
+    if not output_files:
+        cleanup_temp_dir(temp_dir)
+        return JSONResponse(
+            {
+                'success': False,
+                'errors': errors or ['No files were generated.'],
+                'downloadUrl': None,
+                'downloadFilename': None,
+            }
+        )
+
+    zip_name = build_download_filename(download_prefix)
+    zip_path = temp_dir / zip_name
+    create_zip_file(export_dir, zip_path)
+
+    job_id = uuid.uuid4().hex
+    jobs[job_id] = {
+        'created_at': time.time(),
+        'temp_dir': temp_dir,
+        'zip_path': zip_path,
+        'download_filename': zip_name,
+    }
+
+    return {
+        'success': return_code == 0,
+        'errors': errors,
+        'downloadUrl': f'/api/download/{job_id}',
+        'downloadFilename': zip_name,
+    }
+
+
 @app.get('/api/health')
 def healthcheck():
     return {'ok': True}
@@ -94,13 +166,10 @@ async def process_images(
 ):
     purge_expired_jobs()
 
-    try:
-        data = json.loads(metadata)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=400, detail=f'Invalid metadata JSON: {exc.msg}') from exc
-
+    data = parse_metadata_payload(metadata)
     photos = data.get('photos') or []
     formats = data.get('formats') or []
+
     if not photos:
         raise HTTPException(status_code=400, detail='At least one photo is required.')
     if not files:
@@ -114,19 +183,12 @@ async def process_images(
     if not TEMPLATE_PATH.exists():
         raise HTTPException(status_code=500, detail='Template file is missing.')
 
-    temp_dir = Path(tempfile.mkdtemp(prefix='goodphotographer-', dir=JOBS_ROOT))
-    uploads_dir = temp_dir / 'uploads'
-    export_dir = temp_dir / 'export'
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    export_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir, uploads_dir, export_dir = make_job_dirs('goodphotographer-')
 
     try:
+        saved_paths = save_uploads_to_paths(files, uploads_dir)
         processor_photos = []
-        for index, (photo_meta, upload) in enumerate(zip(photos, files), start=1):
-            original_name = Path(upload.filename or f'photo-{index}.jpg').name
-            suffix = Path(original_name).suffix or '.jpg'
-            saved_path = uploads_dir / f'{index:03d}{suffix.lower()}'
-            save_upload_file(upload, saved_path)
+        for photo_meta, saved_path in zip(photos, saved_paths):
             processor_photos.append(
                 {
                     'path': str(saved_path),
@@ -149,46 +211,93 @@ async def process_images(
             encoding='utf-8',
         )
 
-        completed = subprocess.run(
-            [sys.executable, str(PROCESSOR_SCRIPT), str(config_path)],
-            cwd=str(PROCESSOR_SCRIPT.parent),
-            capture_output=True,
-            text=True,
-            timeout=PROCESSOR_TIMEOUT_SECONDS,
-            check=False,
-        )
+        completed = run_processor_script(PROCESSOR_SCRIPT, config_path)
         errors = parse_processor_errors(completed.stdout, completed.stderr, completed.returncode)
 
-        output_files = [path for path in export_dir.iterdir() if path.is_file()]
-        if not output_files:
-            cleanup_temp_dir(temp_dir)
-            return JSONResponse(
+        return finalize_job(
+            temp_dir,
+            export_dir,
+            errors,
+            completed.returncode,
+            download_prefix='AtomicPhotographer',
+        )
+    except subprocess.TimeoutExpired as exc:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(status_code=504, detail='Processing timed out on the server.') from exc
+    except Exception:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise
+    finally:
+        for upload in files:
+            await upload.close()
+
+
+@app.post('/api/process-meta')
+async def process_meta_images(
+    metadata: str = Form(...),
+    files: list[UploadFile] = File(...),
+):
+    purge_expired_jobs()
+
+    data = parse_metadata_payload(metadata)
+    photos = data.get('photos') or []
+    formats = data.get('formats') or []
+
+    if not photos:
+        raise HTTPException(status_code=400, detail='At least one image is required.')
+    if not files:
+        raise HTTPException(status_code=400, detail='No uploaded files were provided.')
+    if len(files) != len(photos):
+        raise HTTPException(status_code=400, detail='Uploaded files do not match image metadata.')
+    if not formats:
+        raise HTTPException(status_code=400, detail='At least one output format is required.')
+
+    for photo_meta in photos:
+        base_name = str(photo_meta.get('baseName', '')).strip()
+        if not base_name:
+            raise HTTPException(
+                status_code=400,
+                detail='Each image requires a non-empty base name.',
+            )
+
+    if not META_PROCESSOR_SCRIPT.exists():
+        raise HTTPException(status_code=500, detail='Meta processor script is missing.')
+
+    temp_dir, uploads_dir, export_dir = make_job_dirs('atomicmeta-')
+
+    try:
+        saved_paths = save_uploads_to_paths(files, uploads_dir)
+        processor_photos = []
+        for photo_meta, saved_path in zip(photos, saved_paths):
+            processor_photos.append(
                 {
-                    'success': False,
-                    'errors': errors or ['No files were generated.'],
-                    'downloadUrl': None,
-                    'downloadFilename': None,
+                    'path': str(saved_path),
+                    'baseName': str(photo_meta.get('baseName', '')).strip(),
                 }
             )
 
-        zip_name = build_download_filename()
-        zip_path = temp_dir / zip_name
-        create_zip_file(export_dir, zip_path)
+        config_path = temp_dir / 'config.json'
+        config_path.write_text(
+            json.dumps(
+                {
+                    'export_dir': str(export_dir),
+                    'photos': processor_photos,
+                    'formats': formats,
+                }
+            ),
+            encoding='utf-8',
+        )
 
-        job_id = uuid.uuid4().hex
-        jobs[job_id] = {
-            'created_at': time.time(),
-            'temp_dir': temp_dir,
-            'zip_path': zip_path,
-            'download_filename': zip_name,
-        }
+        completed = run_processor_script(META_PROCESSOR_SCRIPT, config_path)
+        errors = parse_processor_errors(completed.stdout, completed.stderr, completed.returncode)
 
-        return {
-            'success': completed.returncode == 0,
-            'errors': errors,
-            'downloadUrl': f'/api/download/{job_id}',
-            'downloadFilename': zip_name,
-        }
+        return finalize_job(
+            temp_dir,
+            export_dir,
+            errors,
+            completed.returncode,
+            download_prefix='AtomicMeta',
+        )
     except subprocess.TimeoutExpired as exc:
         shutil.rmtree(temp_dir, ignore_errors=True)
         raise HTTPException(status_code=504, detail='Processing timed out on the server.') from exc
@@ -254,4 +363,4 @@ if DIST_DIR.exists():
 else:
     @app.get('/')
     def root():
-        return {'message': 'GoodPhotographer API is running. Build the frontend to serve the web app from this process.'}
+        return {'message': 'Atomic Photographer API is running. Build the frontend to serve the web app from this process.'}

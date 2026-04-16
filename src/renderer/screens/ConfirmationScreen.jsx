@@ -1,4 +1,4 @@
-export default function ConfirmationScreen({ result, onReset }) {
+export default function ConfirmationScreen({ result, onReset, itemLabel = 'images' }) {
   const success = result?.success !== false;
   const hasErrors = result?.errors?.length > 0;
   const downloaded = result?.downloaded === true;
@@ -11,9 +11,9 @@ export default function ConfirmationScreen({ result, onReset }) {
       <p className="status-copy">
         {success
           ? downloaded
-            ? 'Your headshots have been processed and your zip file has been downloaded.'
-            : 'Your headshots have been processed.'
-          : 'Some photos finished with warnings. Review the notes below before using the set.'}
+            ? `Your ${itemLabel} have been processed and your zip file has been downloaded.`
+            : `Your ${itemLabel} have been processed.`
+          : `Some ${itemLabel} finished with warnings. Review the notes below before using the set.`}
       </p>
 
       {hasErrors && (

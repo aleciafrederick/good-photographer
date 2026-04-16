@@ -71,12 +71,49 @@ h3 {
   max-width: 48ch;
 }
 
-.accent-rule {
-  display: block;
-  width: 120px;
-  height: 3px;
-  margin-top: 12px;
-  background: var(--ao-red);
+.lede-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 24px;
+}
+
+.lede-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 2px solid var(--ao-dark);
+  background: transparent;
+  color: var(--ao-dark);
+  font-family: var(--ao-font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lede-tab:hover {
+  background: transparent;
+  color: var(--ao-dark);
+}
+
+.lede-tab:focus-visible {
+  outline: 2px solid var(--ao-dark);
+  outline-offset: 2px;
+}
+
+.lede-tab.is-active {
+  background: var(--ao-dark);
+  color: var(--ao-white);
+  cursor: default;
+}
+
+.lede-tab.is-active:hover {
+  background: var(--ao-dark);
+  color: var(--ao-white);
 }
 
 /* Form primitives ----------------------------------------------------- */
@@ -365,8 +402,17 @@ button {
   box-shadow: var(--ao-card-shadow);
 }
 
+.photo-row.meta-photo-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-areas: 'basename filename remove';
+}
+
 .photo-row .field {
   min-width: 0;
+}
+
+.photo-row .field-basename {
+  grid-area: basename;
 }
 
 .photo-row .field-first {
@@ -457,6 +503,26 @@ button {
   display: block;
   width: 14px;
   height: 14px;
+}
+
+.photo-row-warning {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: rgba(253, 77, 87, 0.08);
+  border-left: 3px solid var(--ao-red);
+  color: var(--ao-black);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.photo-row-warning-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ao-red-dark);
 }
 
 /* Format options ----------------------------------------------------- */
@@ -625,6 +691,13 @@ button {
       'last     last      last'
       'year     filename  remove';
     column-gap: 16px;
+  }
+
+  .photo-row.meta-photo-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'basename basename'
+      'filename remove';
   }
 
   .photo-row .delete-btn {
