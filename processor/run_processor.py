@@ -143,7 +143,9 @@ def main():
             for fmt in formats:
                 fmt_id = fmt["id"]
                 tfmt = template.get("formats", {}).get(fmt_id, {})
-                name = make_unique_name(base + fmt["suffix"], fmt["ext"], used_filenames)
+                suffix = fmt.get("suffix", "").strip()
+                filename_base = f"{base}-{suffix}" if suffix else base
+                name = make_unique_name(filename_base, fmt["ext"], used_filenames)
                 out_path = os.path.join(export_dir, name)
                 EXPORTERS[fmt_id](aligned, out_path, tfmt)
 

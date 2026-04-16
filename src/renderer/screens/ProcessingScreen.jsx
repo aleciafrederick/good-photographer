@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { appAPI } from '../web/appApi';
 
 const PHASE_LABELS = {
   uploading: 'Uploading photos…',
@@ -23,7 +24,7 @@ export default function ProcessingScreen({ total }) {
   });
 
   useEffect(() => {
-    const unbind = window.electronAPI.onProcessorProgress((data) => {
+    const unbind = appAPI.onProcessorProgress((data) => {
       setProgress((prev) => ({
         ...prev,
         ...data,

@@ -1,173 +1,126 @@
 # GoodPhotographer
 
-GoodPhotographer is a desktop app that batch-processes headshots so they all match the same framing and export in standard sizes. You upload photos, enter each person’s name and year, choose which formats to export (Website Bio, Spin Bio, Nucleus Round), and run.
+GoodPhotographer is a web app for batch-processing headshots so they share the same framing and export in standard formats. Upload photos, enter each person’s name and year, choose the output formats you want, and download the results as a zip file.
 
-The app detects the face in each image, aligns it to a template so head position and scale are consistent, and writes the selected formats into a timestamped folder in your Downloads with consistent file naming. It’s built for internal use: one installable Mac app.
+The frontend is built with React and Vite. The backend is a FastAPI app that receives uploads, runs the Python/OpenCV processor, zips the generated files, and serves the finished download. This repo is now web-only and is intended to be deployed on Railway.
 
-## From one shot prompt to installable app in 2 hours
+## How It Works
 
-This project went from a single ChatGPT prompt to a packaged Mac app in about two hours. Here’s the path we took—useful if you want to repeat the pattern for your own idea.
+1. Upload one or more photos in the browser.
+2. Fill in first name, last name, and year for each photo.
+3. Choose one or more output formats and optional filename suffix text.
+4. Submit the job.
+5. The backend runs `processor/run_processor.py` against the uploaded files.
+6. The processed files are zipped and downloaded to the browser.
 
-1. **Define the product in ChatGPT** — In one thread we described the app (batch headshot processor), user flow (upload → pick formats → process → open folder), and inputs/outputs (photos + names/year, timestamped export folder with Bio/Spin/Nucleus files). No code yet.
+## Output Formats
 
-2. **Generate a PRD** — We asked ChatGPT to turn that into a Product Requirements Document: screens, validation rules, image processing and alignment requirements, export formats, filenames, and “definition of done.” That PRD became the single source of truth.
+- `Website Bio`: `1024 x 683` JPEG
+- `Spin Bio`: `510 x 510` JPEG
+- `Nucleus Round`: `510 x 510` PNG with a circular mask
 
-3. **Bring the PRD into Cursor** — The PRD was uploaded into Cursor. We reviewed the plan (Electron + React for the app, Python for face detection and alignment), confirmed the stack and that we could ship a single installable app with no API, then said: “Let’s build it.”
+Downloaded files use the pattern `LastName-FirstName-Year-Suffix.ext`, with suffix text editable in the UI.
 
-4. **Build and iterate in Cursor** — We scaffolded the app (Electron + React + Vite), implemented the three screens (Intake, Processing, Confirmation), added the Python processor (OpenCV for eyes, affine alignment, export formats), and wired everything together. When something broke (e.g. processor path when running from source, or OpenCV’s need for three points for the affine transform), we fixed it in place. We switched the template from “auto-generated from a reference image” to **manually defined** pupil positions in `template.json` so framing could be tuned in Photoshop and never overwritten.
+## Alignment Template
 
-5. **Polish and ship** — We set the template dimensions (1024×683 for the bio), added a custom app icon (PNG → `.icns` via `make-icns`), and ran `npm run dist` to produce the Mac .app and DMG. Result: one installable artifact, no Python or CLI required for the end user.
+Framing is defined in `resources/template.json`.
 
-**Takeaway:** A clear PRD from a chat, then “build it” in Cursor with a concrete stack and a few debug cycles, got us from idea to installable app in about two hours.
+The template includes:
 
----
+- the output canvas size
+- a reference face rectangle using `face_left`, `face_top`, `face_width`, and `face_height`
+- per-format export sizing
 
-Batch-process headshots: normalize alignment to a template and export standardized image formats (Website Bio, Spin Bio, Nucleus Round).
-
-**Alignment template:** All photos are normalized to the same size and face position using **`resources/template.json`**. The template is **manually defined**: it specifies the canvas size (1024×683 for Bio) and a **reference face rectangle** (`face_left`, `face_top`, `face_width`, `face_height`) in pixels. Edit `template.json` to change framing. The reference image `resources/normal-headshot.png` is for visual reference only and is not read by the app.
-
-**How alignment works:** The app detects the face in each photo (OpenCV cascade), then warps the image so the detected face maps to the template face rect—same position and size, uniform scale. No eye detection or margins; face-to-face alignment only. If the template has no face rect, the app falls back to eye-proportion alignment.
-
-**Tech stack:** **Electron** + **React** (Vite) for the desktop UI; **Python** processor with **OpenCV** for face detection and affine alignment; **PyInstaller** to bundle the processor into a single binary; **electron-builder** for the Mac .app and DMG. No cloud APIs; everything runs locally.
+The processor detects the face in each uploaded image and warps the image so the detected face matches the template face rectangle. Update `resources/template.json` when you want to adjust framing.
 
 ## Requirements
 
-- **Node.js** 18+
-- **Python 3** with packages in `processor/requirements.txt` (for development; the built app can bundle a Python executable)
-- **macOS** for building the desktop app
+- `Node.js` 18+
+- `Python` 3.10+
 
-## Development
+## Local Setup
 
 ### 1. Install dependencies
 
 ```bash
 npm install
-cd processor && pip install -r requirements.txt && cd ..
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
 ```
 
-### 2. Test locally (no packaging)
+### 2. Run the app in development
 
-This runs the app with the **built UI** and the **Python script** (no PyInstaller binary). Good for day-to-day testing.
+```bash
+npm run dev
+```
+
+This starts:
+
+- the Vite frontend at `http://127.0.0.1:5173`
+- the FastAPI backend at `http://127.0.0.1:8000`
+
+The Vite dev server proxies `/api` requests to the backend, so you use the app through the Vite URL during development.
+
+### 3. Test the production-style app locally
+
+Build the frontend:
 
 ```bash
 npm run build
-npm run electron
 ```
 
-Or in one step: **`npm run test`** (same as `npm run build && electron .`).
-
-- Use **Add Photos** → pick images → fill First/Last name and Year → choose formats → **Submit**.
-- Exports go to **`~/Downloads/GoodPhotographer/YYYY-MM-DD_HHMMSS/`**.
-
-### 3. Optional: UI dev with live reload
-
-**Terminal 1:** `npx vite`  
-**Terminal 2:** `npm run dev` (or `ELECTRON_DEV=1 npx electron .`)
-
-The app loads from `http://localhost:5173` so you can edit React and see changes without rebuilding.
-
-### 4. Test the processor by itself (optional)
-
-From the project root:
-```bash
-python3 processor/run_processor.py /path/to/_config.json
-```
-Use a `_config.json` from an export folder (the app writes one when you submit).
-
-## Building the Mac app (single installable)
-
-The app is packaged so users install **one thing**—no separate Python or dependencies.
-
-1. **Build the processor** (single executable via PyInstaller, ~55 MB):
-   ```bash
-   cd processor
-   pip install -r requirements.txt pyinstaller
-   pyinstaller -y processor.spec
-   cd ..
-   ```
-   This creates `processor/dist/processor`.
-
-2. **Build the Electron app** (includes the processor binary and template):
-   ```bash
-   npm run build
-   npm run dist
-   ```
-   Or in one go: `npm run dist` (this runs `build:processor` then builds the app).
-
-3. **Output**
-   - `dist/GoodPhotographer.app` — double-click to run
-   - `dist/GoodPhotographer-0.1.0.dmg` (or similar) — drag to Applications to install
-
-Users only need to install the **.app** or **.dmg**; Python is not required.
-
-**Build installs:** **`npm run dist:all`** builds arm64, x64, and Universal DMGs and copies them to `release/`. Or run **`npm run dist:arm64`**, **`npm run dist:x64`**, or **`npm run dist:universal`** for a single target (each copies its DMG to `release/`). The `dist/` and `release/` folders are gitignored; share installers from `release/` outside the repo.
-
-## Browser version (GitHub Pages)
-
-The same app can run in the browser so others can use it without installing anything. Processing runs entirely in the browser (OpenCV.js); results are downloaded as a single zip file.
-
-### Test locally in the browser
-
-Use the normal browser build for local testing:
+Then serve the built app and API together through FastAPI:
 
 ```bash
-npm run build
-npx vite preview
+npm run preview
 ```
 
-Then:
+Open `http://127.0.0.1:8000`.
 
-1. Open the preview URL shown in the terminal (usually `http://127.0.0.1:4173/`, or the next available port).
-2. Click **Add Photos** and select one or more images.
-3. Fill in first name, last name, and year for each photo.
-4. Choose the output formats you want.
-5. Click **Submit**.
-6. Wait for processing to finish. The first run may take a minute or two while OpenCV.js loads.
-7. Confirm that a zip file such as `GoodPhotographer-YYYY-MM-DD_HHMMSS.zip` downloads to your Downloads folder.
+When `dist/` exists, `backend/app.py` serves the built frontend and the API from the same process, which matches production more closely than Vite dev mode.
 
-If processing stalls or fails in the browser, open DevTools and check the Console for errors.
+## Railway Deployment
 
-### Deploy to GitHub Pages
+Railway should build the frontend first, then start the FastAPI app.
 
-Use the GitHub Pages build for deployment:
+Recommended commands:
+
+- Build command: `npm install && python3 -m pip install -r requirements.txt && npm run build`
+- Start command: `npm run start`
+
+The start script runs:
 
 ```bash
-npm run build:gh
+python3 -m uvicorn backend.app:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
-This build is for the repo subpath on GitHub Pages. If your Pages URL will not be `https://<user>.github.io/good-photographer/`, update the `--base` value in the `build:gh` script in `package.json` (for example `--base /your-repo-name/`).
+Because `backend/app.py` serves `dist/` when it exists, one Railway service can host both:
 
-Then deploy `dist/` to GitHub Pages:
+- the frontend
+- the `/api/process` upload endpoint
+- the `/api/download/:jobId` download endpoint
 
-1. **Recommended:** Use a GitHub Actions workflow that runs `npm run build:gh` and publishes `dist/`.
-2. **Alternative:** Push the contents of `dist/` to a `gh-pages` branch.
+## Local Processor Testing
 
-After deploy, open the live Pages URL and verify that:
+If you need to test the Python processor directly, run:
 
-1. The app loads.
-2. Photos can be selected.
-3. Processing completes.
-4. A zip file downloads successfully.
+```bash
+python3 processor/run_processor.py /path/to/config.json
+```
 
-### Share the desktop app alongside the web version
+The config file should contain:
 
-Keep the desktop app separate from GitHub Pages:
+- `template_path`
+- `export_dir`
+- `photos`
+- `formats`
 
-1. Build the Mac installers with `npm run dist:all` or one of the platform-specific `dist:*` scripts.
-2. Upload the generated files from `release/` to a GitHub Release.
-3. Add a `Download Mac App` button or link in the web app that points to the release page or a specific DMG asset.
+## Export Behavior
 
-The desktop app (Electron) stays unchanged; GitHub Pages hosts only the browser version.
+Processed results are downloaded as a zip file such as:
 
-## Export location
+```text
+GoodPhotographer-YYYY-MM-DD_HHMMSS.zip
+```
 
-**Desktop app:** Files are written to  
-`~/Downloads/GoodPhotographer/YYYY-MM-DD_HHMMSS/`
-
-**Browser:** A single zip file (e.g. `GoodPhotographer-YYYY-MM-DD_HHMMSS.zip`) is downloaded to the user’s Downloads folder.
-
-## Output formats
-
-- **Website Bio**: 1024×683 JPEG – `…Bio.jpg`
-- **Spin Bio**: 510×510 JPEG – `…Spin.jpg`
-- **Nucleus Round**: 510×510 PNG, circular mask – `…Nucleus.png`
+The backend creates temporary job folders and cleans them up after download or expiration.

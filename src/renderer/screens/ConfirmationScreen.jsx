@@ -1,13 +1,16 @@
-export default function ConfirmationScreen({ exportDir, result, onOpenFolder, onReset }) {
+export default function ConfirmationScreen({ result, onReset }) {
   const success = result?.success !== false;
   const hasErrors = result?.errors?.length > 0;
+  const downloaded = result?.downloaded === true;
 
   return (
     <div className="confirmation">
       <h1>{success ? 'Done' : 'Processing finished'}</h1>
       <p>
         {success
-          ? 'Your headshots have been processed and saved.'
+          ? downloaded
+            ? 'Your headshots have been processed and your zip file has been downloaded.'
+            : 'Your headshots have been processed.'
           : 'Processing completed with some issues.'}
       </p>
       {hasErrors && (
@@ -21,12 +24,7 @@ export default function ConfirmationScreen({ exportDir, result, onOpenFolder, on
         </div>
       )}
       <div className="actions">
-        {exportDir && !window.electronAPI?.isBrowser && (
-          <button type="button" onClick={onOpenFolder}>
-            Open export folder
-          </button>
-        )}
-        {exportDir && window.electronAPI?.isBrowser && success && (
+        {downloaded && success && (
           <p className="browser-download-note">Your zip file has been downloaded.</p>
         )}
         <button type="button" className="secondary" onClick={onReset}>

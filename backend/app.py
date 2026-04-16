@@ -222,6 +222,16 @@ def download_results(job_id: str):
 
 if DIST_DIR.exists():
     assets_dir = DIST_DIR / 'assets'
+    resolved_dist_dir = DIST_DIR.resolve()
+
+    def resolve_dist_path(request_path: str):
+        candidate = (DIST_DIR / request_path).resolve()
+        try:
+            candidate.relative_to(resolved_dist_dir)
+        except ValueError:
+            return None
+        return candidate
+
     if assets_dir.exists():
         app.mount('/assets', StaticFiles(directory=assets_dir), name='assets')
 
@@ -234,7 +244,10 @@ if DIST_DIR.exists():
         if path.startswith('api/'):
             raise HTTPException(status_code=404, detail='Not found')
 
-        requested_path = DIST_DIR / path
+        requested_path = resolve_dist_path(path)
+        if requested_path is None:
+            raise HTTPException(status_code=404, detail='Not found')
+
         if requested_path.exists() and requested_path.is_file():
             return FileResponse(requested_path)
         return FileResponse(DIST_DIR / 'index.html')

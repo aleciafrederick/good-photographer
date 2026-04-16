@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import PhotoRow from '../components/PhotoRow';
 import logo from '../assets/logo.png';
+import { appAPI } from '../web/appApi';
 
 const FORMAT_OPTIONS = [
   {
@@ -44,25 +45,39 @@ function atLeastOneFormat(formats) {
   return formats.websiteBio || formats.spinBio || formats.nucleusRound;
 }
 
+function buildSelectedPhotoKey(item) {
+  if (item && typeof item === 'object' && item.file instanceof File) {
+    return `${item.file.name}:${item.file.size}:${item.file.lastModified}`;
+  }
+
+  const path = typeof item === 'string' ? item : item?.path;
+  return String(path || '');
+}
+
+function buildExistingPhotoKey(photo) {
+  if (photo.file instanceof File) {
+    return `${photo.file.name}:${photo.file.size}:${photo.file.lastModified}`;
+  }
+
+  return String(photo.path || '');
+}
+
 export default function IntakeScreen({ photos, setPhotos, formats, setFormats, onSubmit }) {
   const allRowsValid = useMemo(() => photos.length > 0 && photos.every(rowValid), [photos]);
   const canSubmit = allRowsValid && atLeastOneFormat(formats);
 
   const handleAddPhotos = async () => {
-    const selected = await window.electronAPI.selectPhotos();
+    const selected = await appAPI.selectPhotos();
     const year = new Date().getFullYear();
     setPhotos((prev) => {
-      const existing = new Set(prev.map((p) => p.path));
+      const existing = new Set(prev.map(buildExistingPhotoKey));
       const toAdd = selected
-        .filter((item) => {
-          const path = typeof item === 'string' ? item : item.path;
-          return !existing.has(path);
-        })
+        .filter((item) => !existing.has(buildSelectedPhotoKey(item)))
         .map((item) => {
           const path = typeof item === 'string' ? item : item.path;
           const file = typeof item === 'object' && item.file ? item.file : null;
           return {
-            id: path + Date.now() + Math.random(),
+            id: `${buildSelectedPhotoKey(item)}:${Date.now()}:${Math.random()}`,
             path,
             name: path.split(/[/\\]/).pop(),
             ...(file && { file }),
@@ -76,11 +91,11 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
   };
 
   const updatePhoto = (id, updates) => {
-    setPhotos(photos.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };
 
   const removePhoto = (id) => {
-    setPhotos(photos.filter((p) => p.id !== id));
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
   };
 
   return (

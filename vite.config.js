@@ -6,7 +6,6 @@ export default defineConfig({
   plugins: [react()],
   root: 'src/renderer',
   base: './',
-  publicDir: path.resolve(__dirname, 'public'),
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:8000',

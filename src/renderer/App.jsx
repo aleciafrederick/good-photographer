@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import IntakeScreen from './screens/IntakeScreen';
 import ProcessingScreen from './screens/ProcessingScreen';
 import ConfirmationScreen from './screens/ConfirmationScreen';
+import { appAPI } from './web/appApi';
 
 const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
 const DEFAULT_FORMATS = {
@@ -17,12 +18,9 @@ export default function App() {
   const [screen, setScreen] = useState(SCREENS.INTAKE);
   const [photos, setPhotos] = useState([]);
   const [formats, setFormats] = useState(DEFAULT_FORMATS);
-  const [exportDir, setExportDir] = useState(null);
   const [processingResult, setProcessingResult] = useState(null);
 
   const handleSubmit = useCallback(async () => {
-    const exportDirPath = await window.electronAPI.getExportDir();
-    setExportDir(exportDirPath);
     setScreen(SCREENS.PROCESSING);
 
     const formatList = [];
@@ -37,7 +35,6 @@ export default function App() {
     }
 
     const payload = {
-      exportDir: exportDirPath,
       photos: photos.map((p) => ({
         path: p.path,
         firstName: p.firstName.trim(),
@@ -49,11 +46,11 @@ export default function App() {
     };
 
     try {
-      const result = await window.electronAPI.runProcessor(payload);
+      const result = await appAPI.runProcessor(payload);
       setProcessingResult(result);
       setScreen(SCREENS.CONFIRMATION);
     } catch (err) {
-      setProcessingResult({ success: false, exportDir: exportDirPath, errors: [err.message] });
+      setProcessingResult({ success: false, downloaded: false, errors: [err.message] });
       setScreen(SCREENS.CONFIRMATION);
     }
   }, [photos, formats]);
@@ -61,27 +58,15 @@ export default function App() {
   const handleReset = useCallback(() => {
     setPhotos([]);
     setFormats(DEFAULT_FORMATS);
-    setExportDir(null);
     setProcessingResult(null);
     setScreen(SCREENS.INTAKE);
   }, []);
-
-  const openFolder = useCallback(() => {
-    if (exportDir) window.electronAPI.openExportFolder(exportDir);
-  }, [exportDir]);
 
   if (screen === SCREENS.PROCESSING) {
     return <ProcessingScreen total={photos.length} />;
   }
   if (screen === SCREENS.CONFIRMATION) {
-    return (
-      <ConfirmationScreen
-        exportDir={exportDir}
-        result={processingResult}
-        onOpenFolder={openFolder}
-        onReset={handleReset}
-      />
-    );
+    return <ConfirmationScreen result={processingResult} onReset={handleReset} />;
   }
 
   return (
