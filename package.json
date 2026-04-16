@@ -1,7 +1,7 @@
 {
-  "name": "good-photographer",
+  "name": "atomic-photographer",
   "version": "0.1.0",
-  "description": "Upload a headshot photo, and the app automatically centers, aligns, and crops it into a standardized portrait.",
+  "description": "A web app for producing consistent image exports for the web, with a Headshot Formatter and a Meta Image Generator.",
   "author": "Alecia Frederick",
   "license": "MIT",
   "scripts": {

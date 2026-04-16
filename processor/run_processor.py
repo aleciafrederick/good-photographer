@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GoodPhotographer image processor.
+Atomic Photographer image processor.
 Reads config JSON (export_dir, photos[], formats[]), processes each image:
 - Detect eyes, align to template, export selected formats
 - Prints PROGRESS current total for UI

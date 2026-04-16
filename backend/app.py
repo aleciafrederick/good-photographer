@@ -19,7 +19,7 @@ DIST_DIR = ROOT_DIR / 'dist'
 PROCESSOR_SCRIPT = ROOT_DIR / 'processor' / 'run_processor.py'
 META_PROCESSOR_SCRIPT = ROOT_DIR / 'processor' / 'run_meta_processor.py'
 TEMPLATE_PATH = ROOT_DIR / 'resources' / 'template.json'
-JOBS_ROOT = Path(tempfile.gettempdir()) / 'good-photographer-jobs'
+JOBS_ROOT = Path(tempfile.gettempdir()) / 'atomic-photographer-jobs'
 JOBS_ROOT.mkdir(parents=True, exist_ok=True)
 PROCESSOR_TIMEOUT_SECONDS = 300
 JOB_TTL_SECONDS = 60 * 60
@@ -183,7 +183,7 @@ async def process_images(
     if not TEMPLATE_PATH.exists():
         raise HTTPException(status_code=500, detail='Template file is missing.')
 
-    temp_dir, uploads_dir, export_dir = make_job_dirs('goodphotographer-')
+    temp_dir, uploads_dir, export_dir = make_job_dirs('atomicphotographer-')
 
     try:
         saved_paths = save_uploads_to_paths(files, uploads_dir)

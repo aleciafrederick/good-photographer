@@ -1,37 +1,66 @@
-# GoodPhotographer
+# Atomic Photographer
 
-GoodPhotographer is a web app for batch-processing headshots so they share the same framing and export in standard formats. Upload photos, enter each person’s name and year, choose the output formats you want, and download the results as a zip file.
+Atomic Photographer is a web app for producing consistent image exports for the web. It ships with two tools in a single interface:
 
-The frontend is built with React and Vite. The backend is a FastAPI app that receives uploads, runs the Python/OpenCV processor, zips the generated files, and serves the finished download. This repo is now web-only and is intended to be deployed on Railway.
+- **Headshot Formatter** — batch-align headshots to a shared face-framing template and export them in standard bio formats.
+- **Meta Image Generator** — center-crop and resize any image into the standard sizes used in Open Graph and Twitter meta tags.
+
+Upload photos, fill in the per-photo metadata, choose output formats, and download the results as a zip.
+
+The frontend is built with React and Vite. The backend is a FastAPI app that receives uploads, runs a Python/OpenCV processor, zips the generated files, and serves the download.
 
 ## How It Works
 
-1. Upload one or more photos in the browser.
-2. Fill in first name, last name, and year for each photo.
-3. Choose one or more output formats and optional filename suffix text.
-4. Submit the job.
-5. The backend runs `processor/run_processor.py` against the uploaded files.
+1. Pick a tool in the left column: **Headshot Formatter** or **Meta Image Generator**.
+2. Upload one or more photos.
+3. Fill in the required fields for each photo (see below).
+4. Choose one or more output formats and optional filename suffixes.
+5. Submit. The backend runs the appropriate processor against the uploaded files.
 6. The processed files are zipped and downloaded to the browser.
 
-## Output Formats
+Processing and confirmation both happen inline on the right side of the app, so the tool tabs on the left stay available throughout the flow. Resetting clears only the active tool.
 
-- `Website Bio`: `1024 x 683` JPEG
-- `Spin Bio`: `510 x 510` JPEG
-- `Nucleus Round`: `510 x 510` PNG with a circular mask
+## Headshot Formatter
 
-Downloaded files use the pattern `LastName-FirstName-Year-Suffix.ext`, with suffix text editable in the UI.
+### Per-photo fields
 
-## Alignment Template
+- First name
+- Last name
+- Year
 
-Framing is defined in `resources/template.json`.
+### Output formats
 
-The template includes:
+- `Website Bio`: `1024 × 683` JPEG
+- `Spin Bio`: `510 × 510` JPEG
+- `Nucleus Round`: `510 × 510` PNG with a circular mask
+
+Downloaded files use the pattern `FirstName-LastName-Year-Suffix.ext`, with suffix text editable in the UI. Spaces are stripped from all fields.
+
+### Alignment template
+
+Framing is defined in `resources/template.json`. The template includes:
 
 - the output canvas size
-- a reference face rectangle using `face_left`, `face_top`, `face_width`, and `face_height`
+- a reference face rectangle (`face_left`, `face_top`, `face_width`, `face_height`)
 - per-format export sizing
 
-The processor detects the face in each uploaded image and warps the image so the detected face matches the template face rectangle. Update `resources/template.json` when you want to adjust framing.
+The processor (`processor/run_processor.py`) detects the face in each uploaded image and warps the image so the detected face matches the template rectangle. Edit `resources/template.json` to adjust framing.
+
+## Meta Image Generator
+
+### Per-photo fields
+
+- Filename (base name used to build each output file, e.g. `homepage-hero`)
+
+### Output formats
+
+- `Facebook Image Post`: `1200 × 630` JPEG (Open Graph landscape)
+- `Twitter Post Image`: `1200 × 675` JPEG
+- `Square Social Post`: `1200 × 1200` JPEG
+
+Downloaded files use the pattern `filename-Suffix.jpg`. The processor (`processor/run_meta_processor.py`) center-crops to the target aspect ratio and resizes with Lanczos interpolation.
+
+If a source image is smaller than a selected format, the image is still upscaled and cropped to fit, and a soft warning is shown in the UI listing the affected formats.
 
 ## Requirements
 
@@ -59,68 +88,44 @@ This starts:
 - the Vite frontend at `http://127.0.0.1:5173`
 - the FastAPI backend at `http://127.0.0.1:8000`
 
-The Vite dev server proxies `/api` requests to the backend, so you use the app through the Vite URL during development.
+The Vite dev server proxies `/api` requests to the backend, so use the Vite URL during development.
 
 ### 3. Test the production-style app locally
 
-Build the frontend:
+Build the frontend, then serve the built app and API together through FastAPI:
 
 ```bash
 npm run build
-```
-
-Then serve the built app and API together through FastAPI:
-
-```bash
 npm run preview
 ```
 
-Open `http://127.0.0.1:8000`.
+Open `http://127.0.0.1:8000`. When `dist/` exists, `backend/app.py` serves the built frontend and the API from the same process, which matches a production deployment more closely than Vite dev mode.
 
-When `dist/` exists, `backend/app.py` serves the built frontend and the API from the same process, which matches production more closely than Vite dev mode.
+## API Endpoints
 
-## Railway Deployment
-
-Railway should build the frontend first, then start the FastAPI app.
-
-Recommended commands:
-
-- Build command: `npm install && python3 -m pip install -r requirements.txt && npm run build`
-- Start command: `npm run start`
-
-The start script runs:
-
-```bash
-python3 -m uvicorn backend.app:app --host 0.0.0.0 --port ${PORT:-8000}
-```
-
-Because `backend/app.py` serves `dist/` when it exists, one Railway service can host both:
-
-- the frontend
-- the `/api/process` upload endpoint
-- the `/api/download/:jobId` download endpoint
+- `POST /api/process` — Headshot Formatter. Multipart upload of photo files plus a `metadata` JSON field.
+- `POST /api/process-meta` — Meta Image Generator. Same shape, different processor.
+- `GET /api/download/:jobId` — Download the zipped result for a finished job.
+- `GET /api/health` — Health check.
 
 ## Local Processor Testing
 
-If you need to test the Python processor directly, run:
+To test either Python processor directly:
 
 ```bash
-python3 processor/run_processor.py /path/to/config.json
+python3 processor/run_processor.py /path/to/config.json        # headshots
+python3 processor/run_meta_processor.py /path/to/config.json   # meta images
 ```
 
-The config file should contain:
-
-- `template_path`
-- `export_dir`
-- `photos`
-- `formats`
+The headshot config file should contain `template_path`, `export_dir`, `photos`, and `formats`. The meta config file takes `export_dir`, `photos`, and `formats` (no template).
 
 ## Export Behavior
 
-Processed results are downloaded as a zip file such as:
+Processed results are downloaded as a zip file, for example:
 
 ```text
-GoodPhotographer-YYYY-MM-DD_HHMMSS.zip
+AtomicPhotographer-YYYY-MM-DD_HHMMSS.zip   # headshots
+AtomicMeta-YYYY-MM-DD_HHMMSS.zip           # meta images
 ```
 
 The backend creates temporary job folders and cleans them up after download or expiration.
