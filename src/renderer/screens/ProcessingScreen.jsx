@@ -40,16 +40,19 @@ export default function ProcessingScreen({ total }) {
   const imageText = progress.imageNumber
     ? `Image ${progress.imageNumber} of ${total}${progress.imageName ? `: ${progress.imageName}` : ''}`
     : `Completed ${progress.current} of ${total}`;
-  const errorText = progress.errorCount > 0 ? `${progress.errorCount} issue${progress.errorCount === 1 ? '' : 's'} so far` : null;
+  const errorText =
+    progress.errorCount > 0
+      ? `${progress.errorCount} issue${progress.errorCount === 1 ? '' : 's'} so far`
+      : null;
 
   return (
-    <div className="processing">
-      <h1>Processing</h1>
+    <section className="status-screen">
+      <h1 className="display-heading">Processing your export set.</h1>
       <div className="processing-spinner" aria-hidden="true" />
       <p className="progress-text">{progressText}</p>
       <p className="progress-subtext">{imageText}</p>
       {errorText && <p className="progress-error-count">{errorText}</p>}
       {progress.warning && <p className="progress-warning">{progress.warning}</p>}
-    </div>
+    </section>
   );
 }

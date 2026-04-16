@@ -4,18 +4,21 @@ export default function ConfirmationScreen({ result, onReset }) {
   const downloaded = result?.downloaded === true;
 
   return (
-    <div className="confirmation">
-      <h1>{success ? 'Done' : 'Processing finished'}</h1>
-      <p>
+    <section className="status-screen">
+      <h1 className="display-heading">
+        {success ? 'Your export set is ready.' : 'Finished with some issues.'}
+      </h1>
+      <p className="status-copy">
         {success
           ? downloaded
             ? 'Your headshots have been processed and your zip file has been downloaded.'
             : 'Your headshots have been processed.'
-          : 'Processing completed with some issues.'}
+          : 'Some photos finished with warnings. Review the notes below before using the set.'}
       </p>
+
       {hasErrors && (
         <div className="errors">
-          <strong>Notes:</strong>
+          <p className="errors-label">Notes</p>
           <ul>
             {result.errors.map((msg, i) => (
               <li key={i}>{msg}</li>
@@ -23,14 +26,12 @@ export default function ConfirmationScreen({ result, onReset }) {
           </ul>
         </div>
       )}
-      <div className="actions">
-        {downloaded && success && (
-          <p className="browser-download-note">Your zip file has been downloaded.</p>
-        )}
-        <button type="button" className="secondary" onClick={onReset}>
-          Start over
+
+      <div className="status-actions">
+        <button type="button" className="btn btn-outline" onClick={onReset}>
+          Start Another Batch
         </button>
       </div>
-    </div>
+    </section>
   );
 }

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import PhotoRow from '../components/PhotoRow';
-import logo from '../assets/logo.png';
 import { appAPI } from '../web/appApi';
 
 const FORMAT_OPTIONS = [
@@ -99,65 +98,96 @@ export default function IntakeScreen({ photos, setPhotos, formats, setFormats, o
   };
 
   return (
-    <div className="intake">
-      <img src={logo} alt="GoodPhotographer" className="intake-logo" />
-      <h1>GoodPhotographer</h1>
-      <p className="description">
-        Upload a headshot photo, and the app automatically centers, aligns, and crops it into a standardized portrait. Export in Website Bio, Spin Bio, or Nucleus Round formats. 
-      </p>
-
-      <button type="button" onClick={handleAddPhotos}>
-        Add Photos
-      </button>
-
-      {photos.length > 0 && (
-        <section className="photo-list">
-          <h2>Photos</h2>
-          {photos.map((p) => (
-            <PhotoRow
-              key={p.id}
-              photo={p}
-              onChange={(updates) => updatePhoto(p.id, updates)}
-              onRemove={() => removePhoto(p.id)}
-              valid={rowValid(p)}
-            />
-          ))}
-        </section>
-      )}
-
-      <section className="formats">
-        <h2>Output format</h2>
-        <p className="formats-hint">At least one format must be selected.</p>
-        {FORMAT_OPTIONS.map((opt) => (
-          <div key={opt.id} className="format-option">
-            <input
-              id={`${opt.id}-checkbox`}
-              className="format-checkbox"
-              type="checkbox"
-              checked={formats[opt.key]}
-              onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
-            />
-            <label className="format-suffix-label" htmlFor={`${opt.id}-suffix`}>
-              <input
-                id={`${opt.id}-suffix`}
-                type="text"
-                value={formats[opt.suffixKey]}
-                onChange={(e) => setFormats({ ...formats, [opt.suffixKey]: stripSpaces(e.target.value) })}
-                placeholder="Enter filename suffix"
-              />
-            </label>
-            <label className="checkbox-label" htmlFor={`${opt.id}-checkbox`}>
-              <span>{opt.label}</span>
-            </label>
-          </div>
-        ))}
+    <div className="intake-grid">
+      <section className="intake-lede">
+        <h1 className="display-heading">
+          Prepare a consistent export set for the web.
+        </h1>
+        <p className="lede-copy">
+          Upload headshots, confirm naming details, and choose which Atomic-ready formats to generate. Each photo is automatically aligned and cropped into a standardized portrait.
+        </p>
+        <span className="accent-rule" aria-hidden="true" />
       </section>
 
-      <div className="submit-row">
-        <button type="button" onClick={onSubmit} disabled={!canSubmit}>
-          Submit
-        </button>
-      </div>
+      <section className="intake-form">
+        <div className="form-section">
+          <div className="form-section-head">
+            <h2>Upload photos to get started.</h2>
+          </div>
+          {photos.length === 0 ? (
+            <div className="form-empty">
+              <p className="form-empty-text">No photos added yet.</p>
+              <button type="button" className="btn btn-primary" onClick={handleAddPhotos}>
+                Add Photos
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="photo-rows">
+                {photos.map((p) => (
+                  <PhotoRow
+                    key={p.id}
+                    photo={p}
+                    onChange={(updates) => updatePhoto(p.id, updates)}
+                    onRemove={() => removePhoto(p.id)}
+                    valid={rowValid(p)}
+                  />
+                ))}
+              </div>
+              <div className="add-photos-row">
+                <button type="button" className="btn btn-primary" onClick={handleAddPhotos}>
+                  Add Photos
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="form-section">
+          <div className="form-section-head">
+            <h2>Output Formats</h2>
+          </div>
+          <p className="form-hint">Choose at least one format and adjust its filename suffix.</p>
+          <div className="format-list">
+            {FORMAT_OPTIONS.map((opt) => (
+              <div key={opt.id} className="format-option">
+                <input
+                  id={`${opt.id}-checkbox`}
+                  className="format-checkbox"
+                  type="checkbox"
+                  checked={formats[opt.key]}
+                  onChange={(e) => setFormats({ ...formats, [opt.key]: e.target.checked })}
+                />
+                <label className="format-suffix-label" htmlFor={`${opt.id}-suffix`}>
+                  <input
+                    id={`${opt.id}-suffix`}
+                    type="text"
+                    value={formats[opt.suffixKey]}
+                    onChange={(e) =>
+                      setFormats({ ...formats, [opt.suffixKey]: stripSpaces(e.target.value) })
+                    }
+                    placeholder="Suffix"
+                  />
+                </label>
+                <label className="checkbox-label" htmlFor={`${opt.id}-checkbox`}>
+                  <span>{opt.label}</span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="form-submit">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onSubmit}
+            disabled={!canSubmit}
+          >
+            Generate Exports
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
