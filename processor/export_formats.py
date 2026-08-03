@@ -76,10 +76,14 @@ def export_nucleus_round(aligned_bgr, out_path, template_format):
     y0 = (canvas_h - s) // 2
     crop = aligned_bgr[y0 : y0 + s, x0 : x0 + s]
     resized = cv2.resize(crop, size, interpolation=cv2.INTER_LANCZOS4)
-    # Circular mask
-    mask = np.zeros((size[1], size[0]), dtype=np.uint8)
-    cv2.circle(mask, (size[0] // 2, size[1] // 2), min(size) // 2, 255, -1)
-    # BGR + alpha
+    # Draw the circle at 4x resolution and downsample with INTER_AREA so the
+    # alpha edge is anti-aliased. cv2.circle with -1 has no LINE_AA option for
+    # the fill, which is why a direct draw gives visibly stair-stepped edges.
+    ss = 4
+    big_w, big_h = size[0] * ss, size[1] * ss
+    big_mask = np.zeros((big_h, big_w), dtype=np.uint8)
+    cv2.circle(big_mask, (big_w // 2, big_h // 2), min(big_w, big_h) // 2, 255, -1)
+    mask = cv2.resize(big_mask, size, interpolation=cv2.INTER_AREA)
     bgra = cv2.cvtColor(resized, cv2.COLOR_BGR2BGRA)
     bgra[:, :, 3] = mask
     cv2.imwrite(out_path, bgra)

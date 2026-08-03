@@ -16,6 +16,7 @@ from export_formats import (
     EXPORTERS,
     sanitize_filename_part,
 )
+from image_io import load_image_bgr
 
 
 def _resource_base():
@@ -120,7 +121,7 @@ def main():
                 print(f"PROGRESS {i + 1} {total}", flush=True)
                 continue
 
-            img = cv2.imread(src_path)
+            img = load_image_bgr(src_path)
             if img is None:
                 print(f"ERROR: Could not read image: {src_path}", flush=True)
                 print(f"PROGRESS {i + 1} {total}", flush=True)

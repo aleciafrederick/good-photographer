@@ -80,9 +80,31 @@ def align_to_template_by_face(img_bgr, face_rect, template):
         template["face_width"],
         template["face_height"],
     )
+
+    # warpAffine samples per-pixel and does not anti-alias when downsizing, so
+    # heavy downscales (typical for high-res phone/camera source photos) show
+    # aliasing and softness. Pre-shrink with INTER_AREA (proper anti-aliased
+    # downsample) so the residual warp is a gentle scale change, then finish
+    # with INTER_LANCZOS4 for a sharp result.
+    sx, sy, sw, sh = face_rect
+    tw, th = t_face[2], t_face[3]
+    scale = min(tw / sw, th / sh) if sw > 0 and sh > 0 else 1.0
+
+    if scale < 0.5:
+        pre_scale = 2.0 * scale
+        new_w = max(1, int(round(img_bgr.shape[1] * pre_scale)))
+        new_h = max(1, int(round(img_bgr.shape[0] * pre_scale)))
+        img_bgr = cv2.resize(img_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        face_rect = (sx * pre_scale, sy * pre_scale, sw * pre_scale, sh * pre_scale)
+
     M = _affine_face_to_face(face_rect, t_face)
-    aligned = cv2.warpAffine(img_bgr, M, (cw, ch), borderMode=cv2.BORDER_REPLICATE)
-    return aligned
+    return cv2.warpAffine(
+        img_bgr,
+        M,
+        (cw, ch),
+        flags=cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
 
 
 def compute_affine_transform(src_left, src_right, dst_left, dst_right):
@@ -127,7 +149,13 @@ def align_to_template(img_bgr, left_eye, right_eye, template, out_size=None):
     dst_right = tuple(dst_right)
 
     M = compute_affine_transform(left_eye, right_eye, dst_left, dst_right)
-    aligned = cv2.warpAffine(img_bgr, M, (cw, ch), borderMode=cv2.BORDER_REPLICATE)
+    aligned = cv2.warpAffine(
+        img_bgr,
+        M,
+        (cw, ch),
+        flags=cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
     if out_size:
         aligned = cv2.resize(aligned, out_size, interpolation=cv2.INTER_LANCZOS4)
     return aligned
