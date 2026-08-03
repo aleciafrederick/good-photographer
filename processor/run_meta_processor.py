@@ -9,10 +9,9 @@ import json
 import os
 import sys
 
-import cv2
-
 from export_formats import make_unique_name, sanitize_filename_part
 from export_meta_formats import DEFAULT_META_SUFFIXES, META_EXPORTERS, META_FORMAT_SPECS
+from image_io import load_image_bgr
 
 
 def normalize_formats(formats):
@@ -71,7 +70,7 @@ def main():
                 print(f"PROGRESS {i + 1} {total}", flush=True)
                 continue
 
-            img = cv2.imread(src_path)
+            img = load_image_bgr(src_path)
             if img is None:
                 print(f"ERROR: Could not read image: {src_path}", flush=True)
                 print(f"PROGRESS {i + 1} {total}", flush=True)
