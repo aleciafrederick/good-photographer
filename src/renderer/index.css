@@ -708,3 +708,95 @@ button {
     flex-wrap: wrap;
   }
 }
+
+/* QR Code Generator ------------------------------------------------- */
+
+.qr-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qr-input {
+  padding: 14px 12px;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.form-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--ao-red);
+  background: rgba(253, 77, 87, 0.08);
+  color: var(--ao-dark);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.qr-preview-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  min-height: 320px;
+  background: var(--ao-white);
+  border: 2px solid var(--ao-dark);
+}
+
+.qr-preview-image img {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.qr-preview-placeholder {
+  margin: 0;
+  color: var(--ao-dark);
+  opacity: 0.5;
+  font-size: 15px;
+  text-align: center;
+}
+
+.qr-preview-readout {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--ao-dark);
+  font-size: 13px;
+  line-height: 20px;
+  word-break: break-all;
+}
+
+.qr-preview-readout-label {
+  flex: 0 0 auto;
+  font-family: var(--ao-font-sans);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.qr-preview-readout-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--ao-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  opacity: 0.85;
+}
+
+.qr-input[readonly] {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
