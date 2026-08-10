@@ -1,6 +1,7 @@
 const TABS = [
   { id: 'headshots', label: 'Headshot Formatter' },
   { id: 'meta', label: 'Meta Image Generator' },
+  { id: 'qr', label: 'QR Code Generator' },
 ];
 
 export default function ToolTabs({ activeTab, onChange }) {

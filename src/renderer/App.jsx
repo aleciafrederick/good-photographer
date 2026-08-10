@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 import IntakeScreen from './screens/IntakeScreen';
 import MetaImageIntakeScreen from './screens/MetaImageIntakeScreen';
+import QrCodeScreen from './screens/QrCodeScreen';
 import { appAPI } from './web/appApi';
 
 const SCREENS = { INTAKE: 'intake', PROCESSING: 'processing', CONFIRMATION: 'confirmation' };
-const TABS = { HEADSHOTS: 'headshots', META: 'meta' };
+const TABS = { HEADSHOTS: 'headshots', META: 'meta', QR: 'qr' };
 
 const DEFAULT_HEADSHOT_FORMATS = {
   websiteBio: true,
@@ -70,6 +71,10 @@ export default function App() {
   const [metaScreen, setMetaScreen] = useState(SCREENS.INTAKE);
   const [metaResult, setMetaResult] = useState(null);
   const [metaTotal, setMetaTotal] = useState(0);
+
+  const [qrText, setQrText] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [qrError, setQrError] = useState(null);
 
   const handleSubmitHeadshots = useCallback(async () => {
     setHeadshotTotal(headshotPhotos.length);
@@ -157,8 +162,9 @@ export default function App() {
     setMetaScreen(SCREENS.INTAKE);
   }, []);
 
-  const content =
-    tab === TABS.META ? (
+  let content;
+  if (tab === TABS.META) {
+    content = (
       <MetaImageIntakeScreen
         activeTab={tab}
         onTabChange={setTab}
@@ -172,7 +178,22 @@ export default function App() {
         processingTotal={metaTotal}
         onReset={handleResetMeta}
       />
-    ) : (
+    );
+  } else if (tab === TABS.QR) {
+    content = (
+      <QrCodeScreen
+        activeTab={tab}
+        onTabChange={setTab}
+        text={qrText}
+        setText={setQrText}
+        qrDataUrl={qrDataUrl}
+        setQrDataUrl={setQrDataUrl}
+        error={qrError}
+        setError={setQrError}
+      />
+    );
+  } else {
+    content = (
       <IntakeScreen
         activeTab={tab}
         onTabChange={setTab}
@@ -187,6 +208,7 @@ export default function App() {
         onReset={handleResetHeadshots}
       />
     );
+  }
 
   return <AppShell>{content}</AppShell>;
 }

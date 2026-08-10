@@ -1,9 +1,10 @@
 # Atomic Photographer
 
-Atomic Photographer is a web app for producing consistent image exports for the web. It ships with two tools in a single interface:
+Atomic Photographer is a web app for producing consistent image exports for the web. It ships with three tools in a single interface:
 
 - **Headshot Formatter** — batch-align headshots to a shared face-framing template and export them in standard bio formats.
 - **Meta Image Generator** — center-crop and resize any image into the standard sizes used in Open Graph and Twitter meta tags.
+- **QR Code Generator** — encode any URL or text as a downloadable high-resolution QR PNG, rendered entirely in the browser.
 
 Upload photos, fill in the per-photo metadata, choose output formats, and download the results as a zip.
 
@@ -30,6 +31,9 @@ Downloaded files use the pattern `filename-Suffix.jpg`. The processor (`processo
 - `Facebook Image Post`: `1200 × 630` JPEG (Open Graph landscape)
 - `Twitter Post Image`: `1200 × 675` JPEG
 - `Square Social Post`: `1200 × 1200` JPEG
+
+### QR Code Generator
+Client-side only — the URL or text is encoded to a `1024 × 1024` PNG via the `qrcode` npm package (medium error correction, standard black on white) and offered as a download. Nothing is uploaded, no backend endpoint is called. The suggested filename is derived from the URL's hostname (e.g. `qr-atomicobject-com.png`) when the input parses as a URL.
 
 ## Local Setup
 
