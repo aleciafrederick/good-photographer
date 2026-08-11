@@ -6,6 +6,8 @@ const QR_PIXEL_SIZE = 1024;
 const QR_MARGIN_MODULES = 2;
 const QR_ERROR_CORRECTION = 'M';
 const MAX_INPUT_LENGTH = 2000;
+const DEFAULT_COLOR = '#4c4845';
+const HEX_REGEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function slugify(value) {
   return String(value)
@@ -36,11 +38,23 @@ function filenameFromInput(input) {
   return `${base}-${date}.png`;
 }
 
+function isValidHex(value) {
+  return HEX_REGEX.test(String(value).trim());
+}
+
+function normalizeHex(value) {
+  const raw = String(value).trim().replace(/^#/, '').toLowerCase();
+  const expanded = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw;
+  return `#${expanded}`;
+}
+
 export default function QrCodeScreen({
   activeTab,
   onTabChange,
   text,
   setText,
+  color,
+  setColor,
   qrDataUrl,
   setQrDataUrl,
   error,
@@ -48,8 +62,11 @@ export default function QrCodeScreen({
 }) {
   const hasQr = Boolean(qrDataUrl) && !error;
   const [isGenerating, setIsGenerating] = useState(false);
-  const canGenerate = !hasQr && !isGenerating && text.trim().length > 0;
+  const colorIsValid = isValidHex(color);
+  const canGenerate =
+    !hasQr && !isGenerating && text.trim().length > 0 && colorIsValid;
   const inputRef = useRef(null);
+  const swatchColor = colorIsValid ? normalizeHex(color) : DEFAULT_COLOR;
 
   useEffect(() => {
     if (!hasQr) {
@@ -59,14 +76,14 @@ export default function QrCodeScreen({
 
   const handleGenerate = useCallback(async () => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || !isValidHex(color)) return;
     setIsGenerating(true);
     try {
       const dataUrl = await QRCode.toDataURL(value, {
         width: QR_PIXEL_SIZE,
         margin: QR_MARGIN_MODULES,
         errorCorrectionLevel: QR_ERROR_CORRECTION,
-        color: { dark: '#000000', light: '#ffffff' },
+        color: { dark: normalizeHex(color), light: '#ffffff' },
       });
       setQrDataUrl(dataUrl);
       setError(null);
@@ -80,12 +97,14 @@ export default function QrCodeScreen({
     } finally {
       setIsGenerating(false);
     }
-  }, [text, setQrDataUrl, setError]);
+  }, [text, color, setQrDataUrl, setError]);
 
   const handleReset = useCallback(() => {
     setText('');
     setQrDataUrl(null);
     setError(null);
+    // Intentionally preserve `color` so users can generate a series with the
+    // same brand color without re-typing it every time.
   }, [setText, setQrDataUrl, setError]);
 
   const handleKeyDown = (e) => {
@@ -93,6 +112,10 @@ export default function QrCodeScreen({
       e.preventDefault();
       if (canGenerate) handleGenerate();
     }
+  };
+
+  const handleSwatchChange = (e) => {
+    setColor(e.target.value);
   };
 
   const encodedText = hasQr ? text.trim() : '';
@@ -133,6 +156,43 @@ export default function QrCodeScreen({
               readOnly={hasQr}
               aria-label="URL or text to encode"
             />
+          </div>
+
+          <div className="qr-color-row">
+            <label className="qr-color-label" htmlFor="qr-color-hex">
+              Color
+            </label>
+            <input
+              type="color"
+              className="qr-color-swatch"
+              value={swatchColor}
+              onChange={handleSwatchChange}
+              disabled={hasQr}
+              aria-label="Choose QR code color from picker"
+              title="Click to open the color picker"
+            />
+            <input
+              id="qr-color-hex"
+              className={`qr-color-hex${
+                colorIsValid || color === '' ? '' : ' is-invalid'
+              }`}
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={7}
+              placeholder="#4c4845"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              readOnly={hasQr}
+              aria-label="Hex color code"
+              aria-invalid={color !== '' && !colorIsValid}
+            />
+            {!colorIsValid && color !== '' && (
+              <span className="qr-color-hint" role="status">
+                Enter a hex color like #000 or #1a2b3c
+              </span>
+            )}
           </div>
         </div>
 

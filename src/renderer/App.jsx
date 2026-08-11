@@ -73,6 +73,7 @@ export default function App() {
   const [metaTotal, setMetaTotal] = useState(0);
 
   const [qrText, setQrText] = useState('');
+  const [qrColor, setQrColor] = useState('#4c4845');
   const [qrDataUrl, setQrDataUrl] = useState(null);
   const [qrError, setQrError] = useState(null);
 
@@ -186,6 +187,8 @@ export default function App() {
         onTabChange={setTab}
         text={qrText}
         setText={setQrText}
+        color={qrColor}
+        setColor={setQrColor}
         qrDataUrl={qrDataUrl}
         setQrDataUrl={setQrDataUrl}
         error={qrError}
